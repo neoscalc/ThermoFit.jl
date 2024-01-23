@@ -29,6 +29,8 @@ database = "mp";                    # select database here, ig, igd, alk, mp, mb
 
 global gv, z_b, DB, splx_data   = init_MAGEMin(database)
 
+gv, z_b, DB, splx_data = pwm_init(P, T, gv, z_b, DB, splx_data);
+
 # get the solution phase structure (size gv.len_ss)
 # ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
 

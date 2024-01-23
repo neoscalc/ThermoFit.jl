@@ -16,3 +16,7 @@ mod_comp = [0.9,1.3,3.4]
 
 bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc,CST)
 
+# Test load_bulk
+cd(@__DIR__)
+bulk = load_bulk("data/bulk.csv")
+print(bulk[1, :])

@@ -29,13 +29,32 @@ database = "mp";                    # select database here, ig, igd, alk, mp, mb
 
 global gv, z_b, DB, splx_data   = init_MAGEMin(database)
 
-gv, z_b, DB, splx_data = pwm_init(P, T, gv, z_b, DB, splx_data);
+gv = use_predefined_bulk_rock(gv, 0, database);
 
-# get the solution phase structure (size gv.len_ss)
-# ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
-
-# ss = 6
-
-# W  = unsafe_wrap(Vector{Cdouble},ss_struct[ss].W, ss_struct[ss].n_w)
+# Test 1: run MAGEMin with default parameters
+gv, z_b, DB, splx_data = pwm_init(5, 650, gv, z_b, DB, splx_data);
 
 out       = pwm_run(gv, z_b, DB, splx_data);
+
+
+# Test 2: run MAGEMin and display the Margules for biotite
+gv, z_b, DB, splx_data = pwm_init(5, 650, gv, z_b, DB, splx_data);
+
+# get the solution phase structure (size gv.len_ss)
+ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
+
+ss = 6
+
+W  = unsafe_wrap(Vector{Cdouble},ss_struct[ss].W, ss_struct[ss].n_w);
+
+out = pwm_run(gv, z_b, DB, splx_data);
+
+# Test 3: run MAGEMin and modify the Margules for biotite
+gv, z_b, DB, splx_data = pwm_init(5, 650, gv, z_b, DB, splx_data);
+ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
+ss = 6
+W  = unsafe_wrap(Vector{Cdouble},ss_struct[ss].W, ss_struct[ss].n_w);
+
+W[1]  = 60.1
+
+out = pwm_run(gv, z_b, DB, splx_data);

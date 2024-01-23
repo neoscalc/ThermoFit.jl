@@ -20,3 +20,20 @@ bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc,CST)
 cd(@__DIR__)
 bulk = load_bulk("data/bulk.csv")
 print(bulk[1, :])
+
+
+# Test call MAGEMin
+using MAGEMin_C
+
+database = "mp";                    # select database here, ig, igd, alk, mp, mb, um
+
+global gv, z_b, DB, splx_data   = init_MAGEMin(database)
+
+# get the solution phase structure (size gv.len_ss)
+# ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
+
+# ss = 6
+
+# W  = unsafe_wrap(Vector{Cdouble},ss_struct[ss].W, ss_struct[ss].n_w)
+
+out       = pwm_run(gv, z_b, DB, splx_data);

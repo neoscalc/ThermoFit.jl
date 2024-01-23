@@ -12,6 +12,9 @@ thermodynamic_database: String
     
 Sets up global parameters for the inversion problem
 """
+
+using Parameters
+
 @with_kw struct global_params
     solid_solution::String
     thermodynamic_database::String

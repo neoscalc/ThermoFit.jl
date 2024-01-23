@@ -20,6 +20,25 @@ using Parameters
     thermodynamic_database::String = "mp"
 end
 
+"""
+    global_constants()
+
+element_index: Dict{String, Int64}
+    Dictionary that maps element names to their index index
+    in a composition vector.
+
+element_index_reversed: Dict{Int64, String}
+    Dictionary that maps element indices to their name.
+
+oxide_index: Dict{String, Int64}
+    Dictionary that maps oxide names to their index index
+    in a composition vector.
+
+oxide_index_reversed: Dict{Int64, String}
+    Dictionary that maps oxide indices to their name.
+
+Sets up global global_constants for the inversion problem
+"""
 @with_kw struct global_constants
     element_index::Dict{String, Int64} = Dict([("Si" => 1),
                                                ("Ti" => 2),

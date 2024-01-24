@@ -1,9 +1,11 @@
 module ThermoFit
 
+using Reexport
 using Parameters
 using CSV
 using DataFrames
-using MAGEMin_C
+using MAGEMin_jll
+@reexport using MAGEMin_C
 
 include("bingo.jl")
 include("forward.jl")
@@ -19,5 +21,8 @@ export bingo, bingo_calculate_qcmp_phase, bingo_generate_fake_uncertainties
 export global_constants, global_parameters
 export load_bulk
 export utils
+export forward, callMAGEMin
+
+
 
 end

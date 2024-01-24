@@ -73,7 +73,7 @@ Sets up global global_constants for the inversion problem
     element_synonyms::Dict{String, String} = Dict([("SI" => "Si"),
                                                    ("TI" => "Ti"),
                                                    ("AL" => "Al"),
-                                                   ("CR" => "Cr")
+                                                   ("CR" => "Cr"),
                                                    ("FE" => "Fe"),
                                                    ("MN" => "Mn"),
                                                    ("MG" => "Mg"),
@@ -96,7 +96,7 @@ Sets up global global_constants for the inversion problem
                                              ("CaO" => 8),
                                              ("Na2O" => 9),
                                              ("K2O" => 10),
-                                             ("H2O" => 11)
+                                             ("H2O" => 11),
                                              ("O" => 12),
                                              ("CO2" => 13),
                                              ("SO2" => 14),
@@ -118,11 +118,11 @@ Sets up global global_constants for the inversion problem
                                                       (14 => "SO2"),
                                                       (15 => "Cl2")])
 
-    
+
     oxides_definition::Vector{String} = ["SiO2", "TiO2", "Al2O3", "Cr2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O2", "H2O", "CO2", "SO2", "Cl2","O"]
     oxides_nb_cations::Vector{Int64} = [1,1,2,2,1,1,1,1,2,2,0,2,1,1,2,0]
     oxides_nb_oxygen::Vector{Int64} = [2,2,3,3,1,1,1,1,1,1,2,1,2,2,0,1]
-    
+
 
     bingo_fac_1::Float64 = 1.00
     bingo_fac_2::Float64 = 5.00

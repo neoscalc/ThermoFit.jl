@@ -3,10 +3,11 @@ module ThermoFit
 using Parameters
 using CSV
 using DataFrames
-# using MAGEMin_C
+using MAGEMin_C
 
 include("bingo.jl")
 include("forward.jl")
+include("inversion.jl")
 include("params.jl")
 include("utils.jl")
 

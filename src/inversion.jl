@@ -5,6 +5,8 @@ using Parameters
     temperature::Float64
     bulk::Vector{Float64}
     bulk_oxides::Vector{String}
+    mineral_composition::Vector{Float64}
+    mineral_elements::Vector{String}
 end
 
 function forward_call(phase, database, constraint, margules, sys_in)

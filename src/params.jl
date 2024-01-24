@@ -102,7 +102,7 @@ Sets up global global_constants for the inversion problem
                                                     ("S" => "SO2"),
                                                     ("Cl" => "Cl2")])
 
-    oxide_to_elements::Dict{String, Vector{String}} = Dict([("SiO2" => "Si"),
+    oxide_to_elements::Dict{String, String} = Dict([("SiO2" => "Si"),
                                                             ("TiO2" => "Ti"),
                                                             ("Al2O3" => "Al"),
                                                             ("Cr2O3" => "Cr"),

@@ -78,7 +78,7 @@ PARAMS = global_params()
 
 out = callMAGEMin()
 
-calc_structural_formula_element_from_output(out,"bi",12)
+comp_structural_formula = calc_structural_formula_element_from_output(out,"bi",12)
 
 
 
@@ -88,24 +88,7 @@ finalize_MAGEMin(gv,DB, z_b)
 # 
 
 
-function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
-    # find the indices of the oxides in CTS.oxides_definition (Philip method)
-    oxide_idx = Array{Int64}(undef, length(out.oxides))
-    for i = 1:length(out.oxides)
-        oxide_idx[i] = CST.oxide_index[out.oxides[i]]
-    end
-    println(oxide_idx)
 
-    ss_idx = findfirst(x->x==ss_name, out.ph)
-
-    print(out.SS_vec[ss_idx].Comp)
-
-    #mol_cat = out.SS_vec[ss_idx].Comp .* CST.oxides_nb_cations(oxide_idx)
-
-    println(ss_idx)
-    
-
-end
 
 
 

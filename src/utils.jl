@@ -1,6 +1,7 @@
 using ThermoFit
 
 CST = global_constants()
+PARAMS = global_params()
 
 function load_bulk(path)
     df = DataFrame(CSV.File(path, header=1))
@@ -68,3 +69,41 @@ function load_mineral(path)
     return biotite_comp
 end
 
+function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
+    # find the indices of the oxides in CTS.oxides_definition (Philip method)
+    oxide_idx = Array{Int64}(undef, length(out.oxides))
+    for i = 1:length(out.oxides)
+        oxide_idx[i] = CST.oxide_index[out.oxides[i]]
+    end
+    if PARAMS.debug
+        println("Oxide index: $oxide_idx")
+    end
+
+    ss_idx = findfirst(x->x==ss_name, out.ph)
+    if PARAMS.debug
+        println("SS index: $ss_idx")
+    end
+
+    comp_oxide = out.SS_vec[ss_idx].Comp
+    if PARAMS.debug
+        println("Comp oxide: $comp_oxide")
+    end
+
+    comp_elem = comp_oxide .* CST.oxides_nb_cations[oxide_idx]
+    if PARAMS.debug
+        println("Comp elem: $comp_elem")
+    end
+    
+    comp_oxygen = comp_oxide .* CST.oxides_nb_oxygen[oxide_idx]
+    if PARAMS.debug
+        println("Comp oxygen: $comp_oxygen")
+    end
+
+    norm_factor = oxygen_norm / sum(comp_oxygen)
+    comp_structural_formula = comp_elem .* norm_factor
+    if PARAMS.debug
+        println("Comp structural formula: $comp_structural_formula")
+    end
+
+    return comp_structural_formula
+end

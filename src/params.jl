@@ -13,8 +13,8 @@ thermodynamic_database: String
 Sets up global parameters for the inversion problem
 """
 @with_kw struct global_params
-    debug::Bool = false
-    solid_solution::String
+    debug::Bool = true
+    solid_solution::String = "bi"
     thermodynamic_database::String = "mp"
 end
 

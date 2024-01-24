@@ -73,9 +73,10 @@ Sets up global global_constants for the inversion problem
     element_synonyms::Dict{String, String} = Dict([("SI" => "Si"),
                                                    ("TI" => "Ti"),
                                                    ("AL" => "Al"),
+                                                   ("CR" => "Cr")
                                                    ("FE" => "Fe"),
-                                                   ("MG" => "Mg"),
                                                    ("MN" => "Mn"),
+                                                   ("MG" => "Mg"),
                                                    ("CA" => "Ca"),
                                                    ("NA" => "Na"),
                                                    ("K" => "K"),
@@ -95,12 +96,11 @@ Sets up global global_constants for the inversion problem
                                              ("CaO" => 8),
                                              ("Na2O" => 9),
                                              ("K2O" => 10),
-                                             ("O2" => 11),
-                                             ("H2O" => 12),
+                                             ("H2O" => 11)
+                                             ("O" => 12),
                                              ("CO2" => 13),
                                              ("SO2" => 14),
-                                             ("Cl2" => 15),
-                                             ("O" => 16)])
+                                             ("Cl2" => 15)])
 
     oxide_index_reversed::Dict{Int64, String} = Dict([(1 => "SiO2"),
                                                       (2 => "TiO2"),
@@ -112,12 +112,11 @@ Sets up global global_constants for the inversion problem
                                                       (8 => "CaO"),
                                                       (9 => "Na2O"),
                                                       (10 => "K2O"),
-                                                      (11 => "O2"),
-                                                      (12 => "H2O"),
+                                                      (11 => "H2O"),
+                                                      (12 => "O"),
                                                       (13 => "CO2"),
                                                       (14 => "SO2"),
-                                                      (15 => "Cl2"),
-                                                      (16 => "O")])
+                                                      (15 => "Cl2")])
 
     
     oxides_definition::Vector{String} = ["SiO2", "TiO2", "Al2O3", "Cr2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O2", "H2O", "CO2", "SO2", "Cl2","O"]

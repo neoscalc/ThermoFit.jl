@@ -70,6 +70,21 @@ Sets up global global_constants for the inversion problem
                                                          (14 => "S"),
                                                          (15 => "Cl")])
 
+    element_synonyms::Dict{String, String} = Dict([("SI" => "Si"),
+                                                   ("TI" => "Ti"),
+                                                   ("AL" => "Al"),
+                                                   ("FE" => "Fe"),
+                                                   ("MG" => "Mg"),
+                                                   ("MN" => "Mn"),
+                                                   ("CA" => "Ca"),
+                                                   ("NA" => "Na"),
+                                                   ("K" => "K"),
+                                                   ("H" => "H"),
+                                                   ("O" => "O"),
+                                                   ("C" => "C"),
+                                                   ("S" => "S"),
+                                                   ("CL" => "Cl")])
+
     oxide_index::Dict{String, Int64} = Dict([("SiO2" => 1),
                                              ("TiO2" => 2),
                                              ("Al2O3" => 3),

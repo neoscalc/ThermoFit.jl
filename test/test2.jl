@@ -1,33 +1,92 @@
-using MAGEMin_C
-using NLopt
+using ThermoFit
+using CSV
+using DataFrames
 
-database = "mp";
+CST = global_constants()
 
-global gv, z_b, DB, splx_data  = init_MAGEMin(database);
+function load_constraints(path, bulk_oxides)
+    load_bulk(path)
 
-
-P          = 5
-T          = 650
-gv = use_predefined_bulk_rock(gv, 0, database);
-# initialize MAGEMin up to G0 and W's point
-gv, z_b, DB, splx_data = pwm_init(P, T, gv, z_b, DB, splx_data);
-
-
-# get the solution phase structure (size gv.len_ss)
-ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
-
-ss_names  = unsafe_string.(unsafe_wrap(Vector{Ptr{Int8}}, gv.SS_list, gv.len_ss));
-ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
-
-print("\n---------------------------------\n");
-print("    Database information (",database,")\n");
-print("----------------------------------\n");
-for i=1:gv.len_ss
-    print("   ",ss_names[i],": ",i,"; n_W's, ",ss_struct[i].n_w,"; n_em's, ",ss_struct[i].n_em,"\n")
+    return constraints
 end
-print("----------------------------------\n\n");
 
-W = unsafe_wrap(Vector{Cdouble},ss_struct[3].W, ss_struct[3].n_w)
-W[2] = 24.0
 
-out       = pwm_run(gv, z_b, DB, splx_data);
+function load_mineral_composition(path, mineral_elements)
+    df = DataFrame(CSV.File(path, header=1))
+
+    # rename colums with synonyms in CST.element_synonyms if element is present
+    for element in keys(CST.element_synonyms)
+        if element in names(df)
+            rename!(df, element => CST.element_synonyms[element])
+        end
+    end
+
+    # extract matrix of mineral compositions from dataframe ordered by mineral_elements
+    mineral_compositions = zeros(size(df)[1], length(mineral_elements))
+    for i = eachindex(mineral_elements)
+        mineral_compositions[:, i] = df[!, mineral_elements[i]]
+    end
+
+    return mineral_compositions
+end
+
+
+function load_bulk_composition(path, bulk_oxides)
+    df = DataFrame(CSV.File(path, header=1))
+
+    # rename colums with synonyms in CST.element_synonyms if element is present
+    for element in keys(CST.element_synonyms)
+        if element in names(df)
+            rename!(df, element => CST.element_synonyms[element])
+        end
+    end
+
+    element_idx = Array{Int64}(undef, length(names(df)))
+    for i = eachindex(names(df))
+        element_idx[i] = CST.element_idx[names(df)[i]]
+    end
+
+    return bulk_composition
+end
+
+path = "test/data/bulk.csv"
+df = DataFrame(CSV.File(path, header=1))
+
+# rename colums with synonyms in CST.element_synonyms if element is present
+for element in keys(CST.element_synonyms)
+    if element in names(df)
+        rename!(df, element => CST.element_synonyms[element])
+    end
+end
+
+element_idx = Array{Int64}(undef, length(names(df)))
+for i = eachindex(names(df))
+    element_idx[i] = CST.element_index[names(df)[i]]
+end
+
+oxides = Array{String}(undef, length(names(df)))
+for i = eachindex(element_idx)
+    oxides[i] = CST.oxide_index_reversed[element_idx[i]]
+end
+
+# rename columns with oxides
+for i = eachindex(oxides)
+    rename!(df, names(df)[i] => oxides[i])
+end
+
+# calculate oxides moles by dividing element moles by oxide cation number (CST.oxides_nb_cations)
+for i = eachindex(names(df))
+    df[!, names(df)[i]] = df[!, names(df)[i]] ./ CST.oxides_nb_cations[findfirst(x->x==names(df)[i], oxides)]
+
+end
+
+
+
+
+CST.oxides_nb_cations
+
+
+
+mineral_elements = ["Si", "Al", "Ca", "Mg", "Fe", "K", "Na", "Ti", "O", "Mn", "H"]
+
+load_mineral_composition("test/data/biotite.csv", mineral_elements)

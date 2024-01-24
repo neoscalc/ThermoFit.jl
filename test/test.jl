@@ -26,6 +26,8 @@ print(bulk[1, :])
 using ThermoFit
 using MAGEMin_C
 
+CST = global_constants()
+
 database = "mp";                    # select database here, ig, igd, alk, mp, mb, um
 
 global gv, z_b, DB, splx_data   = init_MAGEMin(database);
@@ -69,26 +71,47 @@ out = pwm_run(gv, z_b, DB, splx_data);
 
 out.SS_vec[findfirst(x->x=="bi", out.ph)].Comp ./sum(out.SS_vec[findfirst(x->x=="bi", out.ph)].Comp)  .* 22
 
-calc_structural_formula_element_from_output(out,"bi",12)
+@time calc_structural_formula_element_from_output(out,"bi",12)
+
 
 finalize_MAGEMin(gv,DB, z_b)
 
 
 
 function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
+    
+    # find the indices of the oxides in CTS.oxides_definition (Philip)
+    oxide_idx = zeros(length(out.oxides))
+    for i = 1:length(out.oxides)
+        oxide_idx[i] = CST.oxide_index[out.oxides[i]]
+    end
 
-    oxides = out.oxides
+    println(oxide_idx)
+
+
     ss_idx = findfirst(x->x=="bi", out.ph)
-
     oxide_mol_comp = out.SS_vec[ss_idx].Comp
 
-    println(oxide_mol_comp)
+    # println(oxide_mol_comp)
 
 
 end
 
 
 
+# function meth1(out,ss_name,oxygen_norm)
+#     # find the indices of the oxides in CTS.oxides_definition (Pierre)
+#     oxide_idx = [findfirst(x->x==oxide, CST.oxides_definition) for oxide in out.oxides]
+#     println(oxide_idx)
+# end
+# function meth2(out,ss_name,oxygen_norm)
+#     # find the indices of the oxides in CTS.oxides_definition (Philip)
+#     oxide_idx_2 = zeros(length(out.oxides))
+#     for i = 1:length(out.oxides)
+#         oxide_idx_2[i] = CST.oxide_index[out.oxides[i]]
+#     end
+#     println(oxide_idx_2)
+# end
 
-
-test_tuple::Tuple{Vector{String},Vector{Int64},Vector{Int64}}= ("test", 1, 1)
+# @time meth1(out,"bi",12)
+# @time meth2(out,"bi",12)

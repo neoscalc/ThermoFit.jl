@@ -83,7 +83,8 @@ Sets up global global_constants for the inversion problem
                                              ("H2O" => 12),
                                              ("CO2" => 13),
                                              ("SO2" => 14),
-                                             ("Cl2" => 15)])
+                                             ("Cl2" => 15),
+                                             ("O" => 16)])
 
     oxide_index_reversed::Dict{Int64, String} = Dict([(1 => "SiO2"),
                                                       (2 => "TiO2"),
@@ -99,12 +100,13 @@ Sets up global global_constants for the inversion problem
                                                       (12 => "H2O"),
                                                       (13 => "CO2"),
                                                       (14 => "SO2"),
-                                                      (15 => "Cl2")])
+                                                      (15 => "Cl2"),
+                                                      (16 => "O")])
 
     
-    oxides_definition::Vector{String} = ["SiO2", "TiO2", "Al2O3", "Cr2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O2", "H2O", "CO2", "SO2", "Cl2"]
-    oxides_nb_cations::Vector{Int64} = [1,1,2,2,1,1,1,1,2,2,0,2,1,1,2]
-    oxides_nb_oxygen::Vector{Int64} = [2,2,3,3,1,1,1,1,1,1,2,1,2,2,0]
+    oxides_definition::Vector{String} = ["SiO2", "TiO2", "Al2O3", "Cr2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O2", "H2O", "CO2", "SO2", "Cl2","O"]
+    oxides_nb_cations::Vector{Int64} = [1,1,2,2,1,1,1,1,2,2,0,2,1,1,2,0]
+    oxides_nb_oxygen::Vector{Int64} = [2,2,3,3,1,1,1,1,1,1,2,1,2,2,0,1]
     
 
     bingo_fac_1::Float64 = 1.00

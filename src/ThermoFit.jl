@@ -17,5 +17,6 @@ include("utils.jl")
 export bingo, bingo_calculate_qcmp_phase, bingo_generate_fake_uncertainties
 export global_constants, global_parameters
 export load_bulk
+export utils
 
 end

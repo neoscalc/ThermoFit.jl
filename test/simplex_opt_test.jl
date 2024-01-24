@@ -6,9 +6,9 @@ norm = x0
 x0 = x0 ./ norm
 # define the rosenbrock function
 function f(x, norm, a=0.1, b=0.02)
-    x_denorm = x .* norm
-    y = (a - x_denorm[1])^2 + b * (x_denorm[2] - x_denorm[1]^2)^2
-    println("x = $x_denorm, y = $y")
+    x = x .* norm
+    y = (a - x[1])^2 + b * (x[2] - x[1]^2)^2
+    println("x = $x, y = $y")
     return y
 end
 

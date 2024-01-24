@@ -7,10 +7,10 @@ using DataFrames
 using MAGEMin_jll
 @reexport using MAGEMin_C
 
+include("params.jl")
 include("bingo.jl")
 include("forward.jl")
 include("inversion.jl")
-include("params.jl")
 include("utils.jl")
 
 

@@ -1,5 +1,9 @@
+using ThermoFit
 
-function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc,CST)
+CST = global_constants()
+PARAMS = global_params()
+
+function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Calculate the quality factor for each given component of the selected phase
     # mod_comp: model composition in apfu
     # obs_comp: observed composition in apfu

@@ -1,6 +1,6 @@
 using Parameters
 
-@with_kw struct Constraint
+@with_kw struct constraint
     pressure::Float64
     temperature::Float64
     bulk::Vector{Float64}

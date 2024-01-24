@@ -69,7 +69,7 @@ W[2]  = 30
 out = pwm_run(gv, z_b, DB, splx_data);
 
 # out.SS_vec[findfirst(x->x=="bi", out.ph)].Comp ./sum(out.SS_vec[findfirst(x->x=="bi", out.ph)].Comp)  .* 22
-
+finalize_MAGEMin(gv,DB, z_b)
 
 
 using ThermoFit
@@ -78,11 +78,18 @@ PARAMS = global_params()
 
 out = callMAGEMin()
 
-comp_structural_formula = calc_structural_formula_element_from_output(out,"bi",12)
+comp_structural_formula_clean = calc_structural_formula_element_from_output(out,"bi",12)
+
+constraint_composition = [2.73, 1.27, 0, 1.2, 1.6, 0.98, 0, 0.12, 0.01]
+
+# Generate fake uncertainties
+constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
+
+# Call bingo_calculate_qcmp_phase
+qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean,constraint_composition,constraint_uncertainties)
 
 
 
-finalize_MAGEMin(gv,DB, z_b)
 
 # Create an empty vector of Int64 with length n_em
 # 

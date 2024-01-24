@@ -18,10 +18,12 @@ include("utils.jl")
 
 
 export bingo, bingo_calculate_qcmp_phase, bingo_generate_fake_uncertainties
+export forward, callMAGEMin
+export Constraint, objective_function
 export global_constants, global_parameters
 export load_bulk
 export utils
-export forward, callMAGEMin
+
 
 
 

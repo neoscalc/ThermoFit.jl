@@ -86,6 +86,38 @@ Sets up global global_constants for the inversion problem
                                                    ("S" => "S"),
                                                    ("CL" => "Cl")])
 
+    element_to_oxides::Dict{String, String} = Dict([("Si" => "SiO2"),
+                                                    ("Ti" => "TiO2"),
+                                                    ("Al" => "Al2O3"),
+                                                    ("Cr" => "Cr2O3"),
+                                                    ("Fe" => "FeO"),
+                                                    ("Mn" => "MnO"),
+                                                    ("Mg" => "MgO"),
+                                                    ("Ca" => "CaO"),
+                                                    ("Na" => "Na2O"),
+                                                    ("K" => "K2O"),
+                                                    ("H" => "H2O"),
+                                                    ("O" => "O"),
+                                                    ("C" => "CO2"),
+                                                    ("S" => "SO2"),
+                                                    ("Cl" => "Cl2")])
+
+    oxide_to_elements::Dict{String, Vector{String}} = Dict([("SiO2" => "Si"),
+                                                            ("TiO2" => "Ti"),
+                                                            ("Al2O3" => "Al"),
+                                                            ("Cr2O3" => "Cr"),
+                                                            ("FeO" => "Fe"),
+                                                            ("MnO" => "Mn"),
+                                                            ("MgO" => "Mg"),
+                                                            ("CaO" => "Ca"),
+                                                            ("Na2O" => "Na"),
+                                                            ("K2O" => "K"),
+                                                            ("H2O" => "H"),
+                                                            ("O" => "O"),
+                                                            ("CO2" => "C"),
+                                                            ("SO2" => "S"),
+                                                            ("Cl2" => "Cl")])
+
     oxide_index::Dict{String, Int64} = Dict([("SiO2" => 1),
                                              ("TiO2" => 2),
                                              ("Al2O3" => 3),

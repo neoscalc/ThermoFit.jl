@@ -72,78 +72,44 @@ out = pwm_run(gv, z_b, DB, splx_data);
 finalize_MAGEMin(gv,DB, z_b)
 
 
+
+# test MAGEMin and Bingo with a manually defined biotite composition -----------------------------------------------------------
 using ThermoFit
 CST = global_constants()
 PARAMS = global_params()
 
 out = callMAGEMin()
 
-comp_structural_formula_clean = calc_structural_formula_element_from_output(out,"bi",12)
+comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,"bi",12)
 
-constraint_composition = [2.73, 1.27, 0, 1.2, 1.6, 0.98, 0, 0.12, 0.01]
+constraint_composition = [2.60, 1.60, 1.2, 1.6, 0.98, 0.12,0.01]
+constraint_element = ["Si","Al","Mg", "Fe", "K", "Ti", "Mn"]
+
+comp_structural_formula_clean_ordered = fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
 
 # Generate fake uncertainties
 constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
 
 # Call bingo_calculate_qcmp_phase
-qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean,constraint_composition,constraint_uncertainties)
+qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,constraint_composition,constraint_uncertainties)
 
 
 
 
-# Create an empty vector of Int64 with length n_em
-# 
+# test objective_function ---------------------------------------------------------------------------------------------------------
+using ThermoFit
+CST = global_constants()
+PARAMS = global_params()
 
+database = "mp"
 
+constraint_A = Constraint(8.0, 650, [70.999, 12.805, 0.771, 3.978, 6.342, 2.7895, 1.481, 0.758, 0.72933, 0.075, 30.0], ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "K2O"; "Na2O"; "TiO2"; "O"; "MnO"; "H2O"])
+constraint_B = Constraint(8.0, 600, [70.999, 12.805, 0.771, 3.978, 6.342, 2.7895, 1.481, 0.758, 0.72933, 0.075, 30.0], ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "K2O"; "Na2O"; "TiO2"; "O"; "MnO"; "H2O"])
 
+constraints = [constraint_A, constraint_B]
 
+phase = "bi"
+margules = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 24.0, 5.6, 8.1, 40.0, 1.0, 13.0, 40.0, 30.0, 11.6]
 
-
-
-
-
-
-
-
-
-
-
-
-
-# function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
-    
-#     # find the indices of the oxides in CTS.oxides_definition (Philip)
-#     oxide_idx = zeros(length(out.oxides))
-#     for i = 1:length(out.oxides)
-#         oxide_idx[i] = CST.oxide_index[out.oxides[i]]
-#     end
-
-#     println(oxide_idx)
-
-
-#     ss_idx = findfirst(x->x=="bi", out.ph)
-#     oxide_mol_comp = out.SS_vec[ss_idx].Comp
-
-#     # println(oxide_mol_comp)
-
-
-# end
-
-
-
-# function meth1(out,ss_name,oxygen_norm)
-#     # find the indices of the oxides in CTS.oxides_definition (Pierre)
-#     oxide_idx = [findfirst(x->x==oxide, CST.oxides_definition) for oxide in out.oxides]
-#     println(oxide_idx)
-# end
-# function meth2(out,ss_name,oxygen_norm)
-#     # find the indices of the oxides in CTS.oxides_definition (Philip)
-#     oxide_idx_2 = zeros(length(out.oxides))
-#     for i = 1:length(out.oxides)
-#         oxide_idx_2[i] = CST.oxide_index[out.oxides[i]]
-#     end
-#     println(oxide_idx_2)
-# end
-
-# @time meth1(out,"bi",12)
-# @time meth2(out,"bi",12)
+@btime objective_function(margules, constraints, database, phase, "wt")
+# 213.704 ms (896 allocations: 58.55 KiB)

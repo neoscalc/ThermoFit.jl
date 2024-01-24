@@ -14,15 +14,33 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     #
     # Reference: Duesterhoeft & Lanari (2020) Journal of Metamorphic Geology, 38, 527-551.
     
+    if PARAMS.debug
+        println("--> bingo_calculate_qcmp_phase")
+    end
+
     # Set parameters
     fac_1 = CST.bingo_fac_1
     fac_2 = CST.bingo_fac_2
 
+    if PARAMS.debug
+        println("fac_1: ", fac_1)
+        println("fac_2: ", fac_2)
+    end
+
     # Replace obs_unc values smaller than 0.01 with 0.01
     obs_unc[obs_unc .< 0.01] .= 0.01
 
+    if PARAMS.debug
+        println("obs_unc(changed): ", obs_unc)
+    end
+
     diff_abs = abs.(mod_comp .- obs_comp)
     diff_2 = diff_abs .- obs_unc/fac_1
+
+    if PARAMS.debug
+        println("diff_abs: ", diff_abs)
+        println("diff_2: ", diff_2)
+    end
 
     for i = 1:length(diff_2)
         if diff_2[i] <= 0
@@ -35,11 +53,16 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Calculate Q_cpm for each element
     qcmp_small = (1 .- diff_2 ./ (fac_2 .* obs_unc)) .^ (mod_comp .+ 1)
 
-    print("qcmp_small:")
-    println(qcmp_small)
+    if PARAMS.debug
+        println("qcmp_small: ", qcmp_small)
+    end
 
     qcmp_phase = sum(qcmp_small)/length(qcmp_small) * 100
     
+    if PARAMS.debug
+        println("qcmp_phase: ", qcmp_phase)
+    end
+
     return qcmp_phase
 end
 

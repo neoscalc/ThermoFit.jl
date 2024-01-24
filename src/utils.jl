@@ -71,6 +71,10 @@ end
 
 function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
 
+    if PARAMS.debug
+        println("--> calc_structural_formula_element_from_output")
+    end
+
     # Extract the oxide names from the output
     oxides = out.oxides
 
@@ -127,5 +131,43 @@ function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
     end
 
 
-    return comp_structural_formula
+    return comp_structural_formula, oxides
+end
+
+
+function fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
+    
+    if PARAMS.debug
+        println("--> fix_order_structural_formula")
+    end
+    
+    # Find the indices of the constraint elements in the structural formula
+    constraint_element_idx = Array{Int64}(undef, length(constraint_element))
+    for i = 1:length(constraint_element)
+        constraint_element_idx[i] = CST.element_index[constraint_element[i]]
+    end
+    if PARAMS.debug
+        println("Constraint element index: $constraint_element_idx")
+    end
+
+    # Obtain the corresponding indices of the oxide
+    oxide_ordered = Array{String}(undef, length(constraint_element))
+    oxide_idx = Array{Int64}(undef, length(constraint_element))
+    for i = 1:length(constraint_element)
+        oxide_ordered[i] = CST.oxide_index_reversed[constraint_element_idx[i]]
+        oxide_idx[i] = findfirst(x->x==oxide_ordered[i], oxides)
+    end
+    if PARAMS.debug
+        println("Constraint oxide (calc):  $oxide_ordered")
+        println("Constraint element (def): $constraint_element")
+    end
+
+    # Adjust the order of the structural formula
+    comp_structural_formula_clean_ordered = comp_structural_formula_clean[oxide_idx]
+    if PARAMS.debug
+        println("Comp structural formula original: $comp_structural_formula_clean")
+        println("Comp structural formula ordered:  $comp_structural_formula_clean_ordered")
+    end
+
+    return comp_structural_formula_clean_ordered
 end

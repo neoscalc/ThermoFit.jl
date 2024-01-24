@@ -3,6 +3,7 @@ using CSV
 using DataFrames
 
 CST = global_constants()
+PARAM = global_parameters()
 
 function load_constraints(path, bulk_oxides)
     load_bulk(path)
@@ -49,44 +50,62 @@ function load_bulk_composition(path, bulk_oxides)
     return bulk_composition
 end
 
+
+
+# test
+CST = global_constants()
+PARAM = global_parameters()
+
 path = "test/data/bulk.csv"
 df = DataFrame(CSV.File(path, header=1))
 
-# rename colums with synonyms in CST.element_synonyms if element is present
-for element in keys(CST.element_synonyms)
-    if element in names(df)
-        rename!(df, element => CST.element_synonyms[element])
+if PARAM.debug
+    println(names(df))
+end
+
+# search column index in element_definition_uppercase and replace by element_definition
+idx_element = Array{Int64}(undef, length(names(df)))
+idx_element_dataframe = Array{Int64}(undef, length(names(df)))
+for i = eachindex(names(df))
+    idx_element[i] = findfirst(x->x==names(df)[i], CST.element_definition_uppercase)
+    idx_element_dataframe[i] = i
+    if idx_element[i] != nothing
+        rename!(df, names(df)[i] => CST.element_definition[idx_element[i]])
     end
 end
 
-element_idx = Array{Int64}(undef, length(names(df)))
-for i = eachindex(names(df))
-    element_idx[i] = CST.element_index[names(df)[i]]
+if PARAM.debug
+    println(names(df))
+    println(idx_element)
 end
 
-oxides = Array{String}(undef, length(names(df)))
-for i = eachindex(element_idx)
-    oxides[i] = CST.oxide_index_reversed[element_idx[i]]
+# Exlude oxygen
+element_list = names(df)
+idx_oxygen = findfirst(x->x=="O", element_list)
+element_list_no_oxygen = copy(element_list)
+deleteat!(element_list_no_oxygen, idx_oxygen)
+idx_element_no_oxygen = copy(idx_element)
+deleteat!(idx_element_no_oxygen, idx_oxygen)
+idx_element_dataframe_no_oxygen = copy(idx_element_dataframe)
+deleteat!(idx_element_dataframe_no_oxygen, idx_oxygen)
+
+if PARAM.debug
+    println(element_list_no_oxygen)
+    println(idx_element_no_oxygen)
+    println(idx_element_dataframe_no_oxygen)
 end
 
-# rename columns with oxides
-for i = eachindex(oxides)
-    rename!(df, names(df)[i] => oxides[i])
+oxide_list = CST.oxides_definition[idx_element_no_oxygen]
+oxide_list = push!(oxide_list, "O")
+
+# create an array bulk_oxide_mole with idx_element_dataframe_no_oxygen columns and size(df)[1] rows 
+bulk_oxide_mole = zeros(size(df)[1], length(idx_element_dataframe))
+
+for i = 1:size(df)[1]
+    bulk_oxide_mole[i,1:end-1] = Vector(df[i, idx_element_dataframe_no_oxygen]) ./ CST.oxides_nb_cations[idx_element_no_oxygen]
+    bulk_nb_oxygen = bulk_oxide_mole[i,1:end-1] .* CST.oxides_nb_oxygen[idx_element_no_oxygen]
+    excess_oxygen = df[i,idx_oxygen] - sum(bulk_nb_oxygen)
+    bulk_oxide_mole[i,end] = excess_oxygen
 end
 
-# calculate oxides moles by dividing element moles by oxide cation number (CST.oxides_nb_cations)
-for i = eachindex(names(df))
-    df[!, names(df)[i]] = df[!, names(df)[i]] ./ CST.oxides_nb_cations[findfirst(x->x==names(df)[i], oxides)]
-
-end
-
-
-
-
-CST.oxides_nb_cations
-
-
-
-mineral_elements = ["Si", "Al", "Ca", "Mg", "Fe", "K", "Na", "Ti", "O", "Mn", "H"]
-
-load_mineral_composition("test/data/biotite.csv", mineral_elements)
+# oxide_list & bulk_oxide_mole

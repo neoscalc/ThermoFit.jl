@@ -1,7 +1,7 @@
 using ThermoFit
 
 CST = global_constants()
-PARAMS = global_params()
+PARAMS = global_parameters()
 
 function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Calculate the quality factor for each given component of the selected phase

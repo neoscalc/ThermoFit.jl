@@ -76,7 +76,7 @@ finalize_MAGEMin(gv,DB, z_b)
 # test MAGEMin and Bingo with a manually defined biotite composition -----------------------------------------------------------
 using ThermoFit
 CST = global_constants()
-PARAMS = global_params()
+PARAMS = global_parameters()
 
 out = callMAGEMin()
 
@@ -99,7 +99,7 @@ qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,co
 # test objective_function ---------------------------------------------------------------------------------------------------------
 using ThermoFit
 CST = global_constants()
-PARAMS = global_params()
+PARAMS = global_parameters()
 
 database = "mp"
 

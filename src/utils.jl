@@ -1,7 +1,7 @@
 using ThermoFit
 
 CST = global_constants()
-PARAMS = global_params()
+PARAMS = global_parameters()
 
 function load_bulk(path)
     df = DataFrame(CSV.File(path, header=1))

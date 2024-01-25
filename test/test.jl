@@ -427,7 +427,7 @@ path_mineral = "test/data/biotite.csv"
 path_bulk = "test/data/bulk.csv"
 path_pt = "test/data/pt.csv"
 
-constraints = load_constraints(path_bulk, path_mineral, path_pt)
+constraints = load_constraints(path_bulk, path_mineral, path_pt,["Si","Al","Mg", "Fe", "K", "Ti", "Mn"])
 
 # Call the inversion subroutine 
 inversion_run(JOB, constraints)

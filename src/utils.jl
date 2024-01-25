@@ -3,9 +3,9 @@ using ThermoFit
 CST = global_constants()
 PARAMS = global_parameters()
 
-function load_constraints(path_bulk, path_mineral, path_pt)
+function load_constraints(path_bulk, path_mineral, path_pt, element_list)
     oxide_list, bulk_oxide_mole = load_bulk_composition(path_bulk)
-    element_list, mineral_element_mole = load_mineral_composition(path_mineral)
+    element_list, mineral_element_mole = load_mineral_composition(path_mineral, element_list)
     pressure_kbar, temperature_celsius = load_pt(path_pt)
 
     if PARAMS.debug
@@ -44,7 +44,7 @@ function load_pt(path)
 end
 
 
-function load_mineral_composition(path)
+function load_mineral_composition(path, element_list)
     df = DataFrame(CSV.File(path, header=1))
 
     if PARAMS.debug
@@ -67,17 +67,27 @@ function load_mineral_composition(path)
         println(idx_element)
     end
 
-    element_list = names(df)
+    if PARAMS.debug
+        println(df[2,:])
+    end
 
-    # extract matrix of mineral compositions from DataFrame
-    mineral_element_mole = Matrix(df[:, idx_element_dataframe])
+    # reorder elements in df according to the order in the element_list
+    mineral_element_moles_reorderd = zeros(size(df)[1], length(element_list))
+    for i = 1:size(df)[1]
+        for j = eachindex(element_list)
+            mineral_element_moles_reorderd[i,j] = df[i, element_list[j]]
+        end
+    end
 
     if PARAMS.debug
-        println(mineral_element_mole[1:3,:])
+        println(mineral_element_moles_reorderd[2,:])
         println(element_list)
     end
 
-    return element_list, mineral_element_mole
+    # extract matrix of mineral compositions from DataFrame (reordered)
+    mineral_element_moles = Matrix(mineral_element_moles_reorderd)
+
+    return element_list, mineral_element_moles
 end
 
 

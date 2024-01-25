@@ -7,14 +7,14 @@ obs_comp = [1,1.2,3.1]
 obs_unc = [0.1,0.023,0.3]
 mod_comp = [0.9,1.3,3.4]
 
-bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc,CST)
+bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
 
 # Test generate uncertainties from Bingo
 obs_comp = [1,1.2,3.1]
 obs_unc = bingo_generate_fake_uncertainties(obs_comp)
 mod_comp = [0.9,1.3,3.4]
 
-bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc,CST)
+bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
 
 # Test load_bulk
 cd(@__DIR__)

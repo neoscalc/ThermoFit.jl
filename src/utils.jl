@@ -3,9 +3,9 @@ using ThermoFit
 CST = global_constants()
 PARAMS = global_parameters()
 
-function load_constraints(path_bulk, path_mineral, path_pt, element_list)
+function load_constraints(path_bulk, path_mineral, path_pt)
     oxide_list, bulk_oxide_mole = load_bulk_composition(path_bulk)
-    element_list, mineral_element_mole = load_mineral_composition(path_mineral, element_list)
+    element_list, mineral_element_mole = load_mineral_composition(path_mineral)
     pressure_kbar, temperature_celsius = load_pt(path_pt)
 
     if PARAMS.debug

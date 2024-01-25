@@ -113,3 +113,122 @@ margules = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 24
 
 @btime objective_function(margules, constraints, database, phase, "wt")
 # 213.704 ms (896 allocations: 58.55 KiB)
+
+
+
+# test parameter definition ---------------------------------------------------------------------------------------------------------
+using ThermoFit
+
+w_names =  ["W(phl,annm)",
+            "W(phl,obi)",
+            "W(phl,east)",
+            "W(phl,tbi)",
+            "W(phl,fbi)",
+            "W(phl,mmbi)",
+            "W(annm,obi)",
+            "W(annm,east)",
+            "W(annm,tbi)",
+            "W(annm,fbi)",
+            "W(annm,mmbi)",
+            "W(obi,east)",
+            "W(obi,tbi)",
+            "W(obi,fbi)",
+            "W(obi,mmbi)",
+            "W(east,tbi)",
+            "W(east,fbi)",
+            "W(east,mmbi)",
+            "W(tbi,fbi)",
+            "W(tbi,mmbi)",
+            "W(fbi,mmbi)"]
+
+w_initial_values = [12  0  0 ; 
+                    4  0  0 ; 
+                    10  0  0 ; 
+                    30  0  0 ; 
+                    8  0  0 ; 
+                    9  0  0 ; 
+                    8  0  0 ; 
+                    15  0  0 ; 
+                    32  0  0 ; 
+                    13.6  0  0 ; 
+                    6.3  0  0 ; 
+                    7  0  0 ; 
+                    24  0  0 ; 
+                    5.6  0  0 ; 
+                    8.1  0  0 ; 
+                    40  0  0 ; 
+                    1  0  0 ; 
+                    13  0  0 ; 
+                    40  0  0 ; 
+                    30  0  0 ; 
+                    11.6  0  0]
+
+w_lower_bounds =   [0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0]
+
+w_upper_bounds =   [60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0]
+
+JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
+
+
+
+W(phl,annm) = 12
+W(phl,obi) = 4
+W(phl,east) = 10
+W(phl,tbi) = 30
+W(phl,fbi) = 8
+W(phl,mmbi) = 9
+W(annm,obi) = 8
+W(annm,east) = 15
+W(annm,tbi) = 32
+W(annm,fbi) = 13.6
+W(annm,mmbi) = 6.3
+W(obi,east) = 7
+W(obi,tbi) = 24
+W(obi,fbi) = 5.6
+W(obi,mmbi) = 8.1
+W(east,tbi) = 40
+W(east,fbi) = 1
+W(east,mmbi) = 13
+W(tbi,fbi) = 40
+W(tbi,mmbi) = 30
+W(fbi,mmbi) = 11.6

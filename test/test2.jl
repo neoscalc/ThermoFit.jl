@@ -2,14 +2,10 @@ using ThermoFit
 using CSV
 using DataFrames
 
-CST = global_constants()
-PARAM = global_parameters()
-
-
 
 # test load mineral
 CST = global_constants()
-PARAM = global_parameters()
+PARAMS = global_parameters()
 
 path = "test/data/biotite.csv"
 
@@ -19,7 +15,7 @@ println(mineral_element_mole[1:5, :])
 
 # test load bulk
 CST = global_constants()
-PARAM = global_parameters()
+PARAMS = global_parameters()
 
 path = "test/data/bulk.csv"
 
@@ -30,7 +26,7 @@ println(bulk_oxide_mole[1:5, :])
 
 # test load constraints
 CST = global_constants()
-PARAM = global_parameters()
+PARAMS = global_parameters()
 
 path_mineral = "test/data/biotite.csv"
 path_bulk = "test/data/bulk.csv"

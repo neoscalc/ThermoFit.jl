@@ -8,7 +8,7 @@ function load_constraints(path_bulk, path_mineral, path_pt)
     element_list, mineral_element_mole = load_mineral_composition(path_mineral)
     pressure_kbar, temperature_celsius = load_pt(path_pt)
 
-    if PARAM.debug
+    if PARAMS.debug
         println("Bulk, mineral and pt succesfully loaded.")
     end
 
@@ -24,7 +24,7 @@ function load_constraints(path_bulk, path_mineral, path_pt)
         constraints[i] = constraint(pressure_kbar[i], temperature_celsius[i], bulk_oxide_mole[i, :], oxide_list, mineral_element_mole[i, :], element_list)
     end
 
-    if PARAM.debug
+    if PARAMS.debug
         println(constraints[1:3])
     end
 
@@ -47,7 +47,7 @@ end
 function load_mineral_composition(path)
     df = DataFrame(CSV.File(path, header=1))
 
-    if PARAM.debug
+    if PARAMS.debug
         println(names(df))
     end
 
@@ -62,7 +62,7 @@ function load_mineral_composition(path)
         end
     end
 
-    if PARAM.debug
+    if PARAMS.debug
         println(names(df))
         println(idx_element)
     end
@@ -72,7 +72,7 @@ function load_mineral_composition(path)
     # extract matrix of mineral compositions from DataFrame
     mineral_element_mole = Matrix(df[:, idx_element_dataframe])
 
-    if PARAM.debug
+    if PARAMS.debug
         println(mineral_element_mole[1:3,:])
         println(element_list)
     end
@@ -84,7 +84,7 @@ end
 function load_bulk_composition(path)
     df = DataFrame(CSV.File(path, header=1))
 
-    if PARAM.debug
+    if PARAMS.debug
         println(names(df))
     end
 
@@ -99,7 +99,7 @@ function load_bulk_composition(path)
         end
     end
 
-    if PARAM.debug
+    if PARAMS.debug
         println(names(df))
         println(idx_element)
     end
@@ -114,7 +114,7 @@ function load_bulk_composition(path)
     idx_element_dataframe_no_oxygen = copy(idx_element_dataframe)
     deleteat!(idx_element_dataframe_no_oxygen, idx_oxygen)
 
-    if PARAM.debug
+    if PARAMS.debug
         println(element_list_no_oxygen)
         println(idx_element_no_oxygen)
         println(idx_element_dataframe_no_oxygen)

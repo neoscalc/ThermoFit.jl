@@ -13,10 +13,26 @@ thermodynamic_database: String
 Sets up global parameters for the inversion problem
 """
 @with_kw struct global_parameters
-    debug::Bool = true
-    solid_solution::String = "bi"
-    thermodynamic_database::String = "mp"
+        
+    debug::Bool = true                              # Debug mode: true or false
+
+    thermodynamic_database::String = "mp"           # Thermodynamic database to use (mp, alk, ig, igd, mb, um)
+    solid_solution::String = "bi"                   # Solid solution to optimise (MAGEMin name)
+    
 end
+
+@with_kw struct job
+    
+    thermodynamic_database::String = "mp"           # Thermodynamic database to use (mp, alk, ig, igd, mb, um)
+    solid_solution::String = "bi"                   # Solid solution to optimise (MAGEMin name)
+
+    w_names::Vector{String}                         # Names of the Margules for the solid solution
+    w_initial_values::Matrix{Float64}               # Initial values of the Margules for the solid solution (n_w x 3; columns: WH, WS, WV)
+    w_lower_bounds::Matrix{Float64}                 # Lower bounds of the Margules for the solid solution (n_w x 3; columns: WH, WS, WV)
+    w_upper_bounds::Matrix{Float64}                 # Upper bounds of the Margules for the solid solution (n_w x 3; columns: WH, WS, WV)
+
+end
+
 
 """
     global_constants()

@@ -241,9 +241,9 @@ w_names =  ["W(phl,annm)",
 
 w_initial_values = [12  0  0 ; 
                     4  0  0 ; 
-                    10  0  0 ; 
+                    10  0.1  3 ; 
                     30  0  0 ; 
-                    8  0  0 ; 
+                    8  0.2  4 ; 
                     9  0  0 ; 
                     8  0  0 ; 
                     15  0  0 ; 
@@ -283,25 +283,25 @@ w_lower_bounds =   [0 0 0;
                     0 0 0;
                     0 0 0]
 
-w_upper_bounds =   [60 0 0;
+w_upper_bounds =   [0 0 0;
                     0 0 0;
-                    60 0 0;
-                    60 0 0;
+                    60 1 20;
                     0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
+                    60 1 20;
                     0 0 0;
                     0 0 0;
-                    60 0 0;
                     0 0 0;
                     0 0 0;
-                    60 0 0;
                     0 0 0;
                     0 0 0;
-                    60 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
                     0 0 0;
                     0 0 0]
 
@@ -310,6 +310,9 @@ JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
 job_check_consistency(JOB)
 
 variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
+
+w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, JOB)
+
 
 
 

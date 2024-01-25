@@ -288,9 +288,9 @@ function get_variables_optim(JOB)
     end
 
     # Initialize the variables
-    variables_optim = zeros(9)
-    variables_optim_bounds = zeros(9,2)
-    variables_optim_coordinates = zeros(9,2)
+    variables_optim = zeros(count)
+    variables_optim_bounds = zeros(count,2)
+    variables_optim_coordinates = Matrix{Int64}(undef, count, 2)
 
     # Extract the information
     count = 0
@@ -309,4 +309,18 @@ function get_variables_optim(JOB)
 
 
     return variables_optim, variables_optim_bounds, variables_optim_coordinates
+end
+
+function calculate_w_g(variables_optim,variables_optim_coordinates, P, T, JOB)
+    w_all = JOB.w_initial_values
+
+    # replace the values using the coordinates
+    for i = 1:length(variables_optim)
+        w_all[variables_optim_coordinates[i,1], variables_optim_coordinates[i,2]] = variables_optim[i]
+    end
+    
+    # calculate the g values from WG = WH + T*WS + P*WV
+    w_g = w_all[:,1] .+ T .* w_all[:,2] .+ P .* w_all[:,3]
+
+    return w_g
 end

@@ -211,15 +211,109 @@ JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
 
 job_check_consistency(JOB)
 
-variables_optim = get_variables_optim(JOB)
 
 
 
-function get_variables_optim(JOB)
-    
+# test get_variables_optim ---------------------------------------------------------------------------------------------------------
+using ThermoFit
 
-    return variables_optim
-end
+w_names =  ["W(phl,annm)",
+            "W(phl,obi)",
+            "W(phl,east)",
+            "W(phl,tbi)",
+            "W(phl,fbi)",
+            "W(phl,mmbi)",
+            "W(annm,obi)",
+            "W(annm,east)",
+            "W(annm,tbi)",
+            "W(annm,fbi)",
+            "W(annm,mmbi)",
+            "W(obi,east)",
+            "W(obi,tbi)",
+            "W(obi,fbi)",
+            "W(obi,mmbi)",
+            "W(east,tbi)",
+            "W(east,fbi)",
+            "W(east,mmbi)",
+            "W(tbi,fbi)",
+            "W(tbi,mmbi)",
+            "W(fbi,mmbi)"]
+
+w_initial_values = [12  0  0 ; 
+                    4  0  0 ; 
+                    10  0  0 ; 
+                    30  0  0 ; 
+                    8  0  0 ; 
+                    9  0  0 ; 
+                    8  0  0 ; 
+                    15  0  0 ; 
+                    32  0  0 ; 
+                    13.6  0  0 ; 
+                    6.3  0  0 ; 
+                    7  0  0 ; 
+                    24  0  0 ; 
+                    5.6  0  0 ; 
+                    8.1  0  0 ; 
+                    40  0  0 ; 
+                    1  0  0 ; 
+                    13  0  0 ; 
+                    40  0  0 ; 
+                    30  0  0 ; 
+                    11.6  0  0]
+
+w_lower_bounds =   [0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0]
+
+w_upper_bounds =   [60 0 0;
+                    0 0 0;
+                    60 0 0;
+                    60 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    0 0 0;
+                    0 0 0;
+                    60 0 0;
+                    0 0 0;
+                    0 0 0;
+                    60 0 0;
+                    0 0 0;
+                    0 0 0;
+                    60 0 0;
+                    0 0 0;
+                    0 0 0]
+
+JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
+
+job_check_consistency(JOB)
+
+variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
+
+
+
+
 
 
 

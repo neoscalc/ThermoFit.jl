@@ -244,17 +244,17 @@ end
 function job_check_consistency(JOB)
     println("*** Checking job consistency ***")
     nb_wg = length(JOB.w_names)
-    if isequal(size(w_initial_values), (nb_wg, 3)) == false
+    if isequal(size(JOB.w_initial_values), (nb_wg, 3)) == false
         error("w_initial_values must be a matrix of size (nb_wg, 3)")
     else
         println(" - w_initial_values (size): ok")
     end
-    if isequal(size(w_lower_bounds), (nb_wg, 3)) == false
+    if isequal(size(JOB.w_lower_bounds), (nb_wg, 3)) == false
         error("w_lower_bounds must be a matrix of size (nb_wg, 3)")
     else
         println(" - w_lower_bounds (size): ok")
     end
-    if isequal(size(w_upper_bounds), (nb_wg, 3)) == false
+    if isequal(size(JOB.w_upper_bounds), (nb_wg, 3)) == false
         error("w_upper_bounds must be a matrix of size (nb_wg, 3)")
     else
         println(" - w_upper_bounds (size): ok")
@@ -265,8 +265,48 @@ function job_check_consistency(JOB)
     for i = 1:nb_wg
         for j = 1:3
             if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
-                println("    ", JOB.w_names[i], "  \t", type_w[j], "\t ", w_initial_values[i,j], "\t ", w_lower_bounds[i,j], " \t ", w_upper_bounds[i,j]) 
+                println("    ", JOB.w_names[i], "  \t", type_w[j], "\t ",JOB. w_initial_values[i,j], "\t ", JOB.w_lower_bounds[i,j], " \t ", JOB.w_upper_bounds[i,j]) 
             end   
         end
     end
+end
+
+
+function get_variables_optim(JOB)
+
+    nb_wg = length(JOB.w_names)
+    type_w = ["WH","WS","WV"]
+    
+    # Calculate first the number of variables
+    count = 0
+    for i = 1:nb_wg
+        for j = 1:3
+            if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
+                count = count + 1
+            end   
+        end
+    end
+
+    # Initialize the variables
+    variables_optim = zeros(9)
+    variables_optim_bounds = zeros(9,2)
+    variables_optim_coordinates = zeros(9,2)
+
+    # Extract the information
+    count = 0
+    for i = 1:nb_wg
+        for j = 1:3
+            if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
+                count = count + 1
+                variables_optim[count] = JOB.w_initial_values[i,j]
+                variables_optim_bounds[count,1] = JOB.w_lower_bounds[i,j]
+                variables_optim_bounds[count,2] = JOB.w_upper_bounds[i,j]
+                variables_optim_coordinates[count,1] = i
+                variables_optim_coordinates[count,2] = j
+            end   
+        end
+    end
+
+
+    return variables_optim, variables_optim_bounds, variables_optim_coordinates
 end

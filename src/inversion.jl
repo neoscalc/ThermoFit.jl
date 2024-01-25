@@ -21,7 +21,13 @@ function inversion_run(JOB, constraints)
     x0 = variables_optim ./ norm
     nb_constraints = length(constraints)
 
-    objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
+    residual = objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
+
+    println(residual)
+
+    # perform inversion
+
+
 
 end
 
@@ -41,7 +47,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     residual_i = zeros(nb_constraints)
 
-    for i = 1:3#nb_constraints
+    for i = 1:1#nb_constraints
         
         # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
@@ -58,11 +64,16 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
         comp_structural_formula_clean_ordered = fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
 
-        #constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
+        constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
 
-        #qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,constraint_composition,constraint_uncertainties)
+        qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,constraint_composition,constraint_uncertainties)
 
+        println("\n\n",qcmp_phase,"\n\n")
+
+        residual_i[i] = (100-qcmp_phase)^2
     end
+
+    return sum(residual_i)
 end
 
 function forward_call(phase, database, constraint, w_g, sys_in)

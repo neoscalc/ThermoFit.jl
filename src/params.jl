@@ -169,8 +169,8 @@ Sets up global global_constants for the inversion problem
     element_definition::Vector{String} = ["Si", "Ti", "Al", "Cr", "Fe", "Mn", "Mg", "Ca", "Na", "K", "O", "H", "C", "S", "Cl"]
     element_definition_uppercase::Vector{String} = ["SI", "TI", "AL", "CR", "FE", "MN", "MG", "CA", "NA", "K", "O", "H", "C", "S", "CL"]
     oxides_definition::Vector{String} = ["SiO2", "TiO2", "Al2O3", "Cr2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O", "H2O", "CO2", "SO2", "Cl2"]
-    oxides_nb_cations::Vector{Int64} = [1,1,2,2,1,1,1,1,2,2,0,2,1,1,2,0]
-    oxides_nb_oxygen::Vector{Int64} = [2,2,3,3,1,1,1,1,1,1,2,1,2,2,0,1]
+    oxides_nb_cations::Vector{Int64} = [1,1,2,2,1,1,1,1,2,2,0,2,1,1,2]
+    oxides_nb_oxygen::Vector{Int64} = [2,2,3,3,1,1,1,1,1,1,1,1,2,2,0]
 
 
     bingo_fac_1::Float64 = 1.00

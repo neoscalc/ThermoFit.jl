@@ -15,7 +15,7 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Reference: Duesterhoeft & Lanari (2020) Journal of Metamorphic Geology, 38, 527-551.
     
     if PARAMS.debug
-        println("--> bingo_calculate_qcmp_phase")
+        println("\n--> bingo_calculate_qcmp_phase")
     end
 
     # Set parameters
@@ -31,6 +31,8 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     obs_unc[obs_unc .< 0.01] .= 0.01
 
     if PARAMS.debug
+        println("mod_comp: ", mod_comp)
+        println("obs_comp: ", obs_comp)
         println("obs_unc(changed): ", obs_unc)
     end
 

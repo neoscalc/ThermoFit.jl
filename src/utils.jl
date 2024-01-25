@@ -150,11 +150,14 @@ end
 function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
 
     if PARAMS.debug
-        println("--> calc_structural_formula_element_from_output")
+        println("\n--> calc_structural_formula_element_from_output")
     end
 
     # Extract the oxide names from the output
     oxides = out.oxides
+    if PARAMS.debug
+        println("Oxides (MAGEMin): $oxides")
+    end
 
     # find the indices of the oxides in CTS.oxides_definition (Philip method)
     oxide_idx = Array{Int64}(undef, length(oxides))
@@ -216,7 +219,7 @@ end
 function fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
 
     if PARAMS.debug
-        println("--> fix_order_structural_formula")
+        println("\n--> fix_order_structural_formula")
     end
 
     # Find the indices of the constraint elements in the structural formula

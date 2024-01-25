@@ -3,70 +3,138 @@ using ThermoFit
 CST = global_constants()
 PARAMS = global_parameters()
 
-function load_bulk(path)
-    df = DataFrame(CSV.File(path, header=1))
+function load_constraints(path_bulk, path_mineral, path_pt)
+    oxide_list, bulk_oxide_mole = load_bulk_composition(path_bulk)
+    element_list, mineral_element_mole = load_mineral_composition(path_mineral)
+    pressure_kbar, temperature_celsius = load_pt(path_pt)
 
-    # Create an array of the bulk composition
-    bulk_comp = zeros(Float64, nrow(df), length(CST.element_index))
+    if PARAM.debug
+        println("Bulk, mineral and pt succesfully loaded.")
+    end
 
-    O = df[:, "O"]
-    Si = df[:, "SI"]
-    Ti = df[:, "TI"]
-    Al = df[:, "AL"] ./ 2
-    Fe = df[:, "FE"]
-    Mg = df[:, "MG"]
-    Mn = df[:, "MN"]
-    Ca = df[:, "CA"]
-    Na = df[:, "NA"] ./ 2
-    K = df[:, "K"] ./ 2
-    H = df[:, "H"] ./ 2
+    # check if bulk_oxide_mole, mineral_element_mole, pressure_kbar and temperature_celsius have the same n_rows
+    if size(bulk_oxide_mole)[1] != size(mineral_element_mole)[1] || size(bulk_oxide_mole)[1] != length(pressure_kbar) || size(bulk_oxide_mole)[1] != length(temperature_celsius)
+        println("Error: bulk_oxide_mole, mineral_element_mole, pressure_kbar and temperature_celsius have not the same n_rows")
+        return
+    end
 
-    bulk_comp[:, CST.element_index["O"]] = O
-    bulk_comp[:, CST.element_index["Si"]] = Si
-    bulk_comp[:, CST.element_index["Ti"]] = Ti
-    bulk_comp[:, CST.element_index["Al"]] = Al
-    bulk_comp[:, CST.element_index["Fe"]] = Fe
-    bulk_comp[:, CST.element_index["Mg"]] = Mg
-    bulk_comp[:, CST.element_index["Mn"]] = Mn
-    bulk_comp[:, CST.element_index["Ca"]] = Ca
-    bulk_comp[:, CST.element_index["Na"]] = Na
-    bulk_comp[:, CST.element_index["K"]] = K
-    bulk_comp[:, CST.element_index["H"]] = H
+    # create an empty array constraints with size(bulk_oxide_mole)[1] rows and 1 column
+    constraints = Vector{constraint}(undef, size(bulk_oxide_mole)[1])
+    for i = eachindex(bulk_oxide_mole[:,1])
+        constraints[i] = constraint(pressure_kbar[i], temperature_celsius[i], bulk_oxide_mole[i, :], oxide_list, mineral_element_mole[i, :], element_list)
+    end
 
-    return bulk_comp
+    if PARAM.debug
+        println(constraints[1:3])
+    end
+
+    return constraints
 end
 
-function load_mineral(path)
+
+function load_pt(path)
     df = DataFrame(CSV.File(path, header=1))
 
-    # Create an array of the bulk composition
-    bulk_comp = zeros(Float64, nrow(df), length(CST.element_index))
+    pressure_bar = df[:,1]
+    pressure_kbar = df[:,1] ./ 10^3
 
-    O = df[:, "O"]
-    Si = df[:, "SI"]
-    Ti = df[:, "TI"]
-    Al = df[:, "AL"]
-    Fe = df[:, "FE"]
-    Mg = df[:, "MG"]
-    Mn = df[:, "MN"]
-    Ca = df[:, "CA"]
-    Na = df[:, "NA"]
-    K = df[:, "K"]
-    H = df[:, "H"]
+    temperature_celsius = df[:,2]
 
-    bulk_comp[:, CST.element_index["O"]] = O
-    bulk_comp[:, CST.element_index["Si"]] = Si
-    bulk_comp[:, CST.element_index["Ti"]] = Ti
-    bulk_comp[:, CST.element_index["Al"]] = Al
-    bulk_comp[:, CST.element_index["Fe"]] = Fe
-    bulk_comp[:, CST.element_index["Mg"]] = Mg
-    bulk_comp[:, CST.element_index["Mn"]] = Mn
-    bulk_comp[:, CST.element_index["Ca"]] = Ca
-    bulk_comp[:, CST.element_index["Na"]] = Na
-    bulk_comp[:, CST.element_index["K"]] = K
-    bulk_comp[:, CST.element_index["H"]] = H
+    return pressure_kbar, temperature_celsius
+end
 
-    return biotite_comp
+
+function load_mineral_composition(path)
+    df = DataFrame(CSV.File(path, header=1))
+
+    if PARAM.debug
+        println(names(df))
+    end
+
+    # search column index in element_definition_uppercase and replace by element_definition
+    idx_element = Array{Int64}(undef, length(names(df)))
+    idx_element_dataframe = Array{Int64}(undef, length(names(df)))
+    for i = eachindex(names(df))
+        idx_element[i] = findfirst(x->x==names(df)[i], CST.element_definition_uppercase)
+        idx_element_dataframe[i] = i
+        if idx_element[i] != nothing
+            rename!(df, names(df)[i] => CST.element_definition[idx_element[i]])
+        end
+    end
+
+    if PARAM.debug
+        println(names(df))
+        println(idx_element)
+    end
+
+    element_list = names(df)
+
+    # extract matrix of mineral compositions from DataFrame
+    mineral_element_mole = Matrix(df[:, idx_element_dataframe])
+
+    if PARAM.debug
+        println(mineral_element_mole[1:3,:])
+        println(element_list)
+    end
+
+    return element_list, mineral_element_mole
+end
+
+
+function load_bulk_composition(path)
+    df = DataFrame(CSV.File(path, header=1))
+
+    if PARAM.debug
+        println(names(df))
+    end
+
+    # search column index in element_definition_uppercase and replace by element_definition
+    idx_element = Array{Int64}(undef, length(names(df)))
+    idx_element_dataframe = Array{Int64}(undef, length(names(df)))
+    for i = eachindex(names(df))
+        idx_element[i] = findfirst(x->x==names(df)[i], CST.element_definition_uppercase)
+        idx_element_dataframe[i] = i
+        if idx_element[i] != nothing
+            rename!(df, names(df)[i] => CST.element_definition[idx_element[i]])
+        end
+    end
+
+    if PARAM.debug
+        println(names(df))
+        println(idx_element)
+    end
+
+    # Exlude oxygen
+    element_list = names(df)
+    idx_oxygen = findfirst(x->x=="O", element_list)
+    element_list_no_oxygen = copy(element_list)
+    deleteat!(element_list_no_oxygen, idx_oxygen)
+    idx_element_no_oxygen = copy(idx_element)
+    deleteat!(idx_element_no_oxygen, idx_oxygen)
+    idx_element_dataframe_no_oxygen = copy(idx_element_dataframe)
+    deleteat!(idx_element_dataframe_no_oxygen, idx_oxygen)
+
+    if PARAM.debug
+        println(element_list_no_oxygen)
+        println(idx_element_no_oxygen)
+        println(idx_element_dataframe_no_oxygen)
+    end
+
+    oxide_list = CST.oxides_definition[idx_element_no_oxygen]
+    oxide_list = push!(oxide_list, "O")
+
+    # create an array bulk_oxide_mole with idx_element_dataframe_no_oxygen columns and size(df)[1] rows
+    bulk_oxide_mole = zeros(size(df)[1], length(idx_element_dataframe))
+
+    for i = 1:size(df)[1]
+        bulk_oxide_mole[i,1:end-1] = Vector(df[i, idx_element_dataframe_no_oxygen]) ./ CST.oxides_nb_cations[idx_element_no_oxygen]
+        bulk_nb_oxygen = bulk_oxide_mole[i,1:end-1] .* CST.oxides_nb_oxygen[idx_element_no_oxygen]
+        excess_oxygen = df[i,idx_oxygen] - sum(bulk_nb_oxygen)
+        bulk_oxide_mole[i,end] = excess_oxygen
+    end
+
+    # oxide_list & bulk_oxide_mole
+    return oxide_list, bulk_oxide_mole
 end
 
 function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
@@ -104,7 +172,7 @@ function calc_structural_formula_element_from_output(out,ss_name,oxygen_norm)
     if PARAMS.debug
         println("Comp elem: $comp_elem")
     end
-    
+
     # Calculate the equivalent mol oxygen
     comp_oxygen = comp_oxide .* CST.oxides_nb_oxygen[oxide_idx]
     if PARAMS.debug
@@ -136,11 +204,11 @@ end
 
 
 function fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
-    
+
     if PARAMS.debug
         println("--> fix_order_structural_formula")
     end
-    
+
     # Find the indices of the constraint elements in the structural formula
     constraint_element_idx = Array{Int64}(undef, length(constraint_element))
     for i = 1:length(constraint_element)

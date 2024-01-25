@@ -16,17 +16,18 @@ function inversion_run(JOB, constraints)
     
     # println(variables_optim)
 
-    # test call the objective function with the initial values
+    # Set parameters for the inversion
     norm = variables_optim
     x0 = variables_optim ./ norm
     nb_constraints = length(constraints)
 
+    # # test call the objective function with the initial values (KEEP IT FOR TEST PURPOSES)
     residual = objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
 
     println(residual)
 
     # perform inversion
-
+    
 
 
 end
@@ -40,14 +41,21 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
     
     variables_optim_local = x0 .* norm
 
-    # Implement the check for bounds here (NOT DONE YET)!!!!!!!!!!!!
+    # Check if all parameters are within the bounds:
+    # for i = eachindex(variables_optim_local)
+    #     if variables_optim_local[i] < variables_optim_bounds[i,1]
+    #         return 1e20
+    #     elseif variables_optim_local[i] > variables_optim_bounds[i,2]
+    #         return 1e20
+    #     end
+    # end
 
     # Initiate MAGEMin (doesn't work)
-    # global gv, z_b, DB, splx_data  = init_MAGEMin(JOB.thermodynamic_database);
+    global gv, z_b, DB, splx_data  = init_MAGEMin(JOB.thermodynamic_database);
 
     residual_i = zeros(nb_constraints)
 
-    for i = 1:1#nb_constraints
+    for i = 1:100#nb_constraints
         
         # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
@@ -55,7 +63,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         # println(w_g)
 
         # call the forward module
-        out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, "wt")
+        out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, "wt", gv, z_b, DB, splx_data)
 
         comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,"bi",12)
 
@@ -72,12 +80,14 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
         residual_i[i] = (100-qcmp_phase)^2
     end
+    
+    finalize_MAGEMin(gv,DB, z_b)
 
     return sum(residual_i)
 end
 
-function forward_call(phase, database, constraint, w_g, sys_in)
-    global gv, z_b, DB, splx_data  = init_MAGEMin(database);
+function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+    # global gv, z_b, DB, splx_data  = init_MAGEMin(database);
 
     pressure = constraint.pressure
     temperature = constraint.temperature
@@ -97,7 +107,7 @@ function forward_call(phase, database, constraint, w_g, sys_in)
 
     out = pwm_run(gv, z_b, DB, splx_data)
 
-    finalize_MAGEMin(gv,DB, z_b)
+    # finalize_MAGEMin(gv,DB, z_b)
 
     return out
 end

@@ -5,7 +5,7 @@ CST = global_constants()
 PARAMS = global_parameters()
 
 
-#@testset "Bingo" begin
+@testset "Bingo" begin
     
     obs_comp = [1,1.2,3.1]
     obs_unc = [0.1,0.023,0.3]
@@ -15,5 +15,5 @@ PARAMS = global_parameters()
 
     @test qcmp ≈ 69.277480978266283 atol=1e-6
 
-#end
+end
 

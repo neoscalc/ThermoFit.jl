@@ -209,26 +209,41 @@ w_upper_bounds =   [60 0 0;
 
 JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
 
+job_check_consistency(JOB)
+
+variables_optim = get_variables_optim(JOB)
 
 
-W(phl,annm) = 12
-W(phl,obi) = 4
-W(phl,east) = 10
-W(phl,tbi) = 30
-W(phl,fbi) = 8
-W(phl,mmbi) = 9
-W(annm,obi) = 8
-W(annm,east) = 15
-W(annm,tbi) = 32
-W(annm,fbi) = 13.6
-W(annm,mmbi) = 6.3
-W(obi,east) = 7
-W(obi,tbi) = 24
-W(obi,fbi) = 5.6
-W(obi,mmbi) = 8.1
-W(east,tbi) = 40
-W(east,fbi) = 1
-W(east,mmbi) = 13
-W(tbi,fbi) = 40
-W(tbi,mmbi) = 30
-W(fbi,mmbi) = 11.6
+
+function get_variables_optim(JOB)
+    
+
+    return variables_optim
+end
+
+
+
+
+
+
+# W(phl,annm) = 12
+# W(phl,obi) = 4
+# W(phl,east) = 10
+# W(phl,tbi) = 30
+# W(phl,fbi) = 8
+# W(phl,mmbi) = 9
+# W(annm,obi) = 8
+# W(annm,east) = 15
+# W(annm,tbi) = 32
+# W(annm,fbi) = 13.6
+# W(annm,mmbi) = 6.3
+# W(obi,east) = 7
+# W(obi,tbi) = 24
+# W(obi,fbi) = 5.6
+# W(obi,mmbi) = 8.1
+# W(east,tbi) = 40
+# W(east,fbi) = 1
+# W(east,mmbi) = 13
+# W(tbi,fbi) = 40
+# W(tbi,mmbi) = 30
+# W(fbi,mmbi) = 11.6

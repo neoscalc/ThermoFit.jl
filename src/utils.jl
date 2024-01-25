@@ -239,3 +239,34 @@ function fix_order_structural_formula(comp_structural_formula_clean, oxides, con
 
     return comp_structural_formula_clean_ordered
 end
+
+
+function job_check_consistency(JOB)
+    println("*** Checking job consistency ***")
+    nb_wg = length(JOB.w_names)
+    if isequal(size(w_initial_values), (nb_wg, 3)) == false
+        error("w_initial_values must be a matrix of size (nb_wg, 3)")
+    else
+        println(" - w_initial_values (size): ok")
+    end
+    if isequal(size(w_lower_bounds), (nb_wg, 3)) == false
+        error("w_lower_bounds must be a matrix of size (nb_wg, 3)")
+    else
+        println(" - w_lower_bounds (size): ok")
+    end
+    if isequal(size(w_upper_bounds), (nb_wg, 3)) == false
+        error("w_upper_bounds must be a matrix of size (nb_wg, 3)")
+    else
+        println(" - w_upper_bounds (size): ok")
+    end
+
+    println(" - Variables to be optimized [name type start min max]:")
+    type_w = ["WH","WS","WV"]
+    for i = 1:nb_wg
+        for j = 1:3
+            if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
+                println("    ", JOB.w_names[i], "  \t", type_w[j], "\t ", w_initial_values[i,j], "\t ", w_lower_bounds[i,j], " \t ", w_upper_bounds[i,j]) 
+            end   
+        end
+    end
+end

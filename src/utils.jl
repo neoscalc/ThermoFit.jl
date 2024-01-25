@@ -44,7 +44,7 @@ function load_pt(path)
 end
 
 
-function load_mineral_composition(path)
+function load_mineral_composition(path, element_list)
     df = DataFrame(CSV.File(path, header=1))
 
     if PARAMS.debug
@@ -67,17 +67,27 @@ function load_mineral_composition(path)
         println(idx_element)
     end
 
-    element_list = names(df)
+    if PARAMS.debug
+        println(df[2,:])
+    end
 
-    # extract matrix of mineral compositions from DataFrame
-    mineral_element_mole = Matrix(df[:, idx_element_dataframe])
+    # reorder elements in df according to the order in the element_list
+    mineral_element_moles_reorderd = zeros(size(df)[1], length(element_list))
+    for i = 1:size(df)[1]
+        for j = eachindex(element_list)
+            mineral_element_moles_reorderd[i,j] = df[i, element_list[j]]
+        end
+    end
 
     if PARAMS.debug
-        println(mineral_element_mole[1:3,:])
+        println(mineral_element_moles_reorderd[2,:])
         println(element_list)
     end
 
-    return element_list, mineral_element_mole
+    # extract matrix of mineral compositions from DataFrame (reordered)
+    mineral_element_moles = Matrix(mineral_element_moles_reorderd)
+
+    return element_list, mineral_element_moles
 end
 
 
@@ -244,17 +254,17 @@ end
 function job_check_consistency(JOB)
     println("*** Checking job consistency ***")
     nb_wg = length(JOB.w_names)
-    if isequal(size(JOB.w_initial_values), (nb_wg, 3)) == false
+    if isequal(size(w_initial_values), (nb_wg, 3)) == false
         error("w_initial_values must be a matrix of size (nb_wg, 3)")
     else
         println(" - w_initial_values (size): ok")
     end
-    if isequal(size(JOB.w_lower_bounds), (nb_wg, 3)) == false
+    if isequal(size(w_lower_bounds), (nb_wg, 3)) == false
         error("w_lower_bounds must be a matrix of size (nb_wg, 3)")
     else
         println(" - w_lower_bounds (size): ok")
     end
-    if isequal(size(JOB.w_upper_bounds), (nb_wg, 3)) == false
+    if isequal(size(w_upper_bounds), (nb_wg, 3)) == false
         error("w_upper_bounds must be a matrix of size (nb_wg, 3)")
     else
         println(" - w_upper_bounds (size): ok")
@@ -265,62 +275,8 @@ function job_check_consistency(JOB)
     for i = 1:nb_wg
         for j = 1:3
             if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
-                println("    ", JOB.w_names[i], "  \t", type_w[j], "\t ",JOB. w_initial_values[i,j], "\t ", JOB.w_lower_bounds[i,j], " \t ", JOB.w_upper_bounds[i,j]) 
-            end   
+                println("    ", JOB.w_names[i], "  \t", type_w[j], "\t ", w_initial_values[i,j], "\t ", w_lower_bounds[i,j], " \t ", w_upper_bounds[i,j])
+            end
         end
     end
-end
-
-
-function get_variables_optim(JOB)
-
-    nb_wg = length(JOB.w_names)
-    type_w = ["WH","WS","WV"]
-    
-    # Calculate first the number of variables
-    count = 0
-    for i = 1:nb_wg
-        for j = 1:3
-            if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
-                count = count + 1
-            end   
-        end
-    end
-
-    # Initialize the variables
-    variables_optim = zeros(count)
-    variables_optim_bounds = zeros(count,2)
-    variables_optim_coordinates = Matrix{Int64}(undef, count, 2)
-
-    # Extract the information
-    count = 0
-    for i = 1:nb_wg
-        for j = 1:3
-            if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
-                count = count + 1
-                variables_optim[count] = JOB.w_initial_values[i,j]
-                variables_optim_bounds[count,1] = JOB.w_lower_bounds[i,j]
-                variables_optim_bounds[count,2] = JOB.w_upper_bounds[i,j]
-                variables_optim_coordinates[count,1] = i
-                variables_optim_coordinates[count,2] = j
-            end   
-        end
-    end
-
-
-    return variables_optim, variables_optim_bounds, variables_optim_coordinates
-end
-
-function calculate_w_g(variables_optim,variables_optim_coordinates, P, T, JOB)
-    w_all = JOB.w_initial_values
-
-    # replace the values using the coordinates
-    for i = 1:length(variables_optim)
-        w_all[variables_optim_coordinates[i,1], variables_optim_coordinates[i,2]] = variables_optim[i]
-    end
-    
-    # calculate the g values from WG = WH + T*WS + P*WV
-    w_g = w_all[:,1] .+ T .* w_all[:,2] .+ P .* w_all[:,3]
-
-    return w_g
 end

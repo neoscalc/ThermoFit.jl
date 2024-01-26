@@ -43,9 +43,18 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     gv.verbose = -1
 
-    nb_to_use = nb_constraints
+    if isequal(JOB.number_constraints_max,0)
+        nb_to_use = nb_constraints
+    elseif JOB.number_constraints_max > nb_constraints
+        nb_to_use = nb_constraints
+    else
+        nb_to_use = JOB.number_constraints_max
+    end
+
     step_print = nb_to_use ÷ 10;
     count = 0;
+
+    println("\n-> New iteration with ",nb_to_use," constraints <-")
 
     residual_i = zeros(nb_to_use)
     qcmp_all = zeros(nb_to_use)
@@ -54,7 +63,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         # print for large job
         count = count + 1
         if count == step_print
-            println("$(i)/$(nb_to_use) (",i/nb_to_use*100,"%)")
+            println("      $(i)/$(nb_to_use) (",i/nb_to_use*100,"%)")
             count = 0
         end
 
@@ -68,7 +77,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
         # check if the mineral is predicted to be stable
         if !(JOB.solid_solution in out.ph)
-            println(JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
+            println("   Achtung: ",JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
             residual_i[i] = 100
             qcmp_all[i] = 0
         else
@@ -95,8 +104,10 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     # println("residual_i = ", 100 .- sqrt.(residual_i))
     # println("q_cpm      = ", qcmp_all)
-    println("residual = ", sum(residual_i))
-    println("metrics = ", sum(qcmp_all)/length(qcmp_all))
+    println("\n   Residual = ", sum(residual_i))
+    println("   Metrics = ", sum(qcmp_all)/length(qcmp_all))
+
+    println("\n   Margules = ", variables_optim_local)
 
     return sum(residual_i)
 end

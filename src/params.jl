@@ -14,7 +14,7 @@ Sets up global parameters for the inversion problem
 """
 @with_kw struct global_parameters
         
-    debug::Bool = true                              # Debug mode: true or false
+    debug::Bool = false                              # Debug mode: true or false
 
     thermodynamic_database::String = "mp"           # Thermodynamic database to use (mp, alk, ig, igd, mb, um)
     solid_solution::String = "bi"                   # Solid solution to optimise (MAGEMin name)

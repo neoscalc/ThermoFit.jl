@@ -388,27 +388,27 @@ w_lower_bounds =   [0 0 0;
                     0 0 0;
                     0 0 0]
 
-w_upper_bounds =   [0 0 0;
-                    0 0 0;
+w_upper_bounds =   [60 0 0;
                     60 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0]
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0]
 
 thermodynamic_database = "mp"
 solid_solution = "bi"
@@ -430,8 +430,10 @@ path_pt = "test/data/pt.csv"
 constraints = load_constraints(path_bulk, path_mineral, path_pt,["Si","Al","Mg", "Fe", "K", "Ti", "Mn"])
 
 # Call the inversion subroutine 
-inversion_run(JOB, constraints)
+res, norm = inversion_run(JOB, constraints)
 
+println(JOB.w_initial_values)
+println(res.minimizer.*norm)
 
 # 1
 

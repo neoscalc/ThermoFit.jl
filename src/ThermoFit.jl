@@ -5,6 +5,8 @@ using Parameters
 using CSV
 using DataFrames
 using MAGEMin_jll
+using Optim
+
 @reexport using MAGEMin_C
 
 include("params.jl")

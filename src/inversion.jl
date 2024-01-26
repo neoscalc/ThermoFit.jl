@@ -22,14 +22,13 @@ function inversion_run(JOB, constraints)
     nb_constraints = length(constraints)
 
     # # test call the objective function with the initial values (KEEP IT FOR TEST PURPOSES)
-    residual = objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
+    # residual = objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
 
-    println(residual)
-
-    # perform inversion
     
+    # perform inversion
+    res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates), x0, NelderMead())
 
-
+    return res, norm
 end
 
 """
@@ -42,20 +41,24 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
     variables_optim_local = x0 .* norm
 
     # Check if all parameters are within the bounds:
-    # for i = eachindex(variables_optim_local)
-    #     if variables_optim_local[i] < variables_optim_bounds[i,1]
-    #         return 1e20
-    #     elseif variables_optim_local[i] > variables_optim_bounds[i,2]
-    #         return 1e20
-    #     end
-    # end
+    for i = eachindex(variables_optim_local)
+        if variables_optim_local[i] < variables_optim_bounds[i,1]
+            return 1e20
+        elseif variables_optim_local[i] > variables_optim_bounds[i,2]
+            return 1e20
+        end
+    end
 
     # Initiate MAGEMin (doesn't work)
     global gv, z_b, DB, splx_data  = init_MAGEMin(JOB.thermodynamic_database);
 
-    residual_i = zeros(nb_constraints)
+    gv.verbose = -1
 
-    for i = 1:100#nb_constraints
+    nb_to_use = 100
+
+    residual_i = zeros(nb_to_use)
+    qcmp_all = zeros(nb_to_use)
+    for i = 1:nb_to_use #nb_constraints
         
         # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
@@ -64,6 +67,9 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
         # call the forward module
         out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, "wt", gv, z_b, DB, splx_data)
+
+        # check if the mineral is predicted to be stable
+        
 
         comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,"bi",12)
 
@@ -76,12 +82,19 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
         qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,constraint_composition,constraint_uncertainties)
 
-        println("\n\n",qcmp_phase,"\n\n")
+        # println("\n\n",qcmp_phase,"\n\n")
 
         residual_i[i] = (100-qcmp_phase)^2
+        qcmp_all[i] = qcmp_phase
+        
     end
-    
+
     finalize_MAGEMin(gv,DB, z_b)
+
+    # println("residual_i = ", 100 .- sqrt.(residual_i))
+    # println("q_cpm      = ", qcmp_all)
+    println("residual = ", sum(residual_i))
+    println("metrics = ", sum(qcmp_all)/length(qcmp_all))
 
     return sum(residual_i)
 end
@@ -102,10 +115,15 @@ function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, spl
 
     ss_idx = findfirst(x->x==phase, ss_names);
 
-    W = unsafe_wrap(Vector{Cdouble},ss_struct[ss_idx].W, ss_struct[ss_idx].n_w)
-    W = w_g
+    W = unsafe_wrap(Vector{Cdouble},ss_struct[ss_idx].W, ss_struct[ss_idx].n_w);
+    W[:] = w_g
 
-    out = pwm_run(gv, z_b, DB, splx_data)
+    W_check = unsafe_wrap(Vector{Cdouble},ss_struct[ss_idx].W, ss_struct[ss_idx].n_w)
+
+    #println("W = ", w_g)
+    #println("W_check", W_check)
+
+    out = pwm_run(gv, z_b, DB, splx_data);
 
     # finalize_MAGEMin(gv,DB, z_b)
 

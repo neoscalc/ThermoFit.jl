@@ -43,13 +43,20 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     gv.verbose = -1
 
-    nb_to_use = nb_constraints
+    nb_to_use = 100 # nb_constraints
     step_print = nb_to_use ÷ 10;
     count = 0;
 
     residual_i = zeros(nb_to_use)
     qcmp_all = zeros(nb_to_use)
-    for i = 1:nb_to_use #nb_constraints
+
+    @threads :static for i = 1:nb_to_use #nb_constraints
+        id          = Threads.threadid()
+        print("thread id = ", id, "\n")
+        gv          = gv[id]
+        z_b         = z_b[id]
+        DB          = DB[id]
+        splx_data   = splx_data[id]
 
         # print for large job
         count = count + 1
@@ -60,8 +67,6 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
         # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
-
-        # println(w_g)
 
         # call the forward module
         out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)

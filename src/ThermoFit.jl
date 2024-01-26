@@ -6,7 +6,7 @@ using CSV
 using DataFrames
 using MAGEMin_jll
 using Optim
-using Threads
+using Base.Threads
 
 @reexport using MAGEMin_C
 

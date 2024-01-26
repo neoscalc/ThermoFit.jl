@@ -80,6 +80,12 @@ PARAMS = global_parameters()
 
 out = callMAGEMin()
 
+# Stop if biotite is not in the list of phases
+if !("bi" in out.ph)
+    println("biotite not in the list of phases")
+    return
+end
+
 comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,"bi",12)
 
 constraint_composition = [2.60, 1.60, 1.2, 1.6, 0.98, 0.12,0.01]
@@ -115,203 +121,6 @@ margules = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 24
 # 213.704 ms (896 allocations: 58.55 KiB)
 
 
-
-# test parameter definition ---------------------------------------------------------------------------------------------------------
-using ThermoFit
-
-w_names =  ["W(phl,annm)",
-            "W(phl,obi)",
-            "W(phl,east)",
-            "W(phl,tbi)",
-            "W(phl,fbi)",
-            "W(phl,mmbi)",
-            "W(annm,obi)",
-            "W(annm,east)",
-            "W(annm,tbi)",
-            "W(annm,fbi)",
-            "W(annm,mmbi)",
-            "W(obi,east)",
-            "W(obi,tbi)",
-            "W(obi,fbi)",
-            "W(obi,mmbi)",
-            "W(east,tbi)",
-            "W(east,fbi)",
-            "W(east,mmbi)",
-            "W(tbi,fbi)",
-            "W(tbi,mmbi)",
-            "W(fbi,mmbi)"]
-
-w_initial_values = [12  0  0 ; 
-                    4  0  0 ; 
-                    10  0  0 ; 
-                    30  0  0 ; 
-                    8  0  0 ; 
-                    9  0  0 ; 
-                    8  0  0 ; 
-                    15  0  0 ; 
-                    32  0  0 ; 
-                    13.6  0  0 ; 
-                    6.3  0  0 ; 
-                    7  0  0 ; 
-                    24  0  0 ; 
-                    5.6  0  0 ; 
-                    8.1  0  0 ; 
-                    40  0  0 ; 
-                    1  0  0 ; 
-                    13  0  0 ; 
-                    40  0  0 ; 
-                    30  0  0 ; 
-                    11.6  0  0]
-
-w_lower_bounds =   [0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0]
-
-w_upper_bounds =   [60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0]
-
-JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
-
-job_check_consistency(JOB)
-
-
-
-
-# test get_variables_optim ---------------------------------------------------------------------------------------------------------
-using ThermoFit
-
-w_names =  ["W(phl,annm)",
-            "W(phl,obi)",
-            "W(phl,east)",
-            "W(phl,tbi)",
-            "W(phl,fbi)",
-            "W(phl,mmbi)",
-            "W(annm,obi)",
-            "W(annm,east)",
-            "W(annm,tbi)",
-            "W(annm,fbi)",
-            "W(annm,mmbi)",
-            "W(obi,east)",
-            "W(obi,tbi)",
-            "W(obi,fbi)",
-            "W(obi,mmbi)",
-            "W(east,tbi)",
-            "W(east,fbi)",
-            "W(east,mmbi)",
-            "W(tbi,fbi)",
-            "W(tbi,mmbi)",
-            "W(fbi,mmbi)"]
-
-w_initial_values = [12  0  0 ; 
-                    4  0  0 ; 
-                    10  0.1  3 ; 
-                    30  0  0 ; 
-                    8  0.2  4 ; 
-                    9  0  0 ; 
-                    8  0  0 ; 
-                    15  0  0 ; 
-                    32  0  0 ; 
-                    13.6  0  0 ; 
-                    6.3  0  0 ; 
-                    7  0  0 ; 
-                    24  0  0 ; 
-                    5.6  0  0 ; 
-                    8.1  0  0 ; 
-                    40  0  0 ; 
-                    1  0  0 ; 
-                    13  0  0 ; 
-                    40  0  0 ; 
-                    30  0  0 ; 
-                    11.6  0  0]
-
-w_lower_bounds =   [0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0]
-
-w_upper_bounds =   [0 0 0;
-                    0 0 0;
-                    60 1 20;
-                    0 0 0;
-                    60 1 20;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0]
-
-JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
-
-job_check_consistency(JOB)
-
-variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
-
-w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, JOB)
 
 
 
@@ -388,27 +197,27 @@ w_lower_bounds =   [0 0 0;
                     0 0 0;
                     0 0 0]
 
-w_upper_bounds =   [60 0 0;
+w_upper_bounds =   [0 0 0;
+                    0 0 0;
                     60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0;
-                    60 0 0]
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0;
+                    0 0 0]
 
 thermodynamic_database = "mp"
 solid_solution = "bi"
@@ -432,7 +241,7 @@ constraints = load_constraints(path_bulk, path_mineral, path_pt,["Si","Al","Mg",
 # Call the inversion subroutine 
 res, norm = inversion_run(JOB, constraints)
 
-println(JOB.w_initial_values)
+# println(JOB.w_initial_values) # Note that we update JOB.w_initial_values in this version
 println(res.minimizer.*norm)
 
 # 1

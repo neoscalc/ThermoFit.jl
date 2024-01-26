@@ -54,11 +54,20 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     gv.verbose = -1
 
-    nb_to_use = 100
+    nb_to_use = nb_constraints #nb_constraints
+    step_print = 100;
+    count = 0;
 
     residual_i = zeros(nb_to_use)
     qcmp_all = zeros(nb_to_use)
     for i = 1:nb_to_use #nb_constraints
+
+        # print for large job
+        count = count + 1
+        if count == step_print
+            println("$(i)/$(nb_to_use) (",i/nb_to_use*100,"%)")
+            count = 0
+        end
         
         # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
@@ -69,23 +78,27 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, "wt", gv, z_b, DB, splx_data)
 
         # check if the mineral is predicted to be stable
-        
+        if !(JOB.solid_solution in out.ph)
+            println(JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) K")
+            residual_i[i] = 100
+            qcmp_all[i] = 0
+        else
+            comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,JOB.solid_solution,12)
 
-        comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,"bi",12)
+            constraint_composition = constraints[i].mineral_composition
+            constraint_element = constraints[i].mineral_elements
 
-        constraint_composition = constraints[i].mineral_composition
-        constraint_element = constraints[i].mineral_elements
+            comp_structural_formula_clean_ordered = fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
 
-        comp_structural_formula_clean_ordered = fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
+            constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
 
-        constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
+            qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,constraint_composition,constraint_uncertainties)
 
-        qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,constraint_composition,constraint_uncertainties)
+            # println("\n\n",qcmp_phase,"\n\n")
 
-        # println("\n\n",qcmp_phase,"\n\n")
-
-        residual_i[i] = (100-qcmp_phase)^2
-        qcmp_all[i] = qcmp_phase
+            residual_i[i] = (100-qcmp_phase)^2
+            qcmp_all[i] = qcmp_phase
+        end
         
     end
 
@@ -122,6 +135,12 @@ function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, spl
 
     #println("W = ", w_g)
     #println("W_check", W_check)
+
+    println("** calling MAGEMin at: P = $(pressure) kbar and T = $(temperature) K")
+    println("   pressure = ", pressure, " kbar")
+    println("   temperature = ", temperature, " K")
+    println("   bulk composition = ", bulk)
+    println("   bulk oxides = ", bulk_oxides)
 
     out = pwm_run(gv, z_b, DB, splx_data);
 

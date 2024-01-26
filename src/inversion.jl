@@ -1,19 +1,8 @@
-using Parameters
-
-@with_kw struct constraint
-    pressure::Float64
-    temperature::Float64
-    bulk::Vector{Float64}
-    bulk_oxides::Vector{String}
-    mineral_composition::Vector{Float64}
-    mineral_elements::Vector{String}
-end
-
 function inversion_run(JOB, constraints)
 
     # get the variables to variables_optim_coordinates
     variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
-    
+
     # println(variables_optim)
 
     # Set parameters for the inversion
@@ -24,7 +13,7 @@ function inversion_run(JOB, constraints)
     # # test call the objective function with the initial values (KEEP IT FOR TEST PURPOSES)
     # residual = objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
 
-    
+
     # perform inversion
     res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates), x0, NelderMead())
 
@@ -34,10 +23,10 @@ end
 """
     objective_function(*args)
 
-Add an objectove function here.
+Add an objective function Doc here.
 """
-function objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
-    
+function objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, sys_in = "mol")
+
     variables_optim_local = x0 .* norm
 
     # Check if all parameters are within the bounds:
@@ -54,8 +43,8 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     gv.verbose = -1
 
-    nb_to_use = nb_constraints #nb_constraints
-    step_print = 100;
+    nb_to_use = nb_constraints
+    step_print = nb_to_use ÷ 10;
     count = 0;
 
     residual_i = zeros(nb_to_use)
@@ -68,18 +57,18 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
             println("$(i)/$(nb_to_use) (",i/nb_to_use*100,"%)")
             count = 0
         end
-        
+
         # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
 
         # println(w_g)
 
         # call the forward module
-        out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, "wt", gv, z_b, DB, splx_data)
+        out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)
 
         # check if the mineral is predicted to be stable
         if !(JOB.solid_solution in out.ph)
-            println(JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) K")
+            println(JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
             residual_i[i] = 100
             qcmp_all[i] = 0
         else
@@ -99,7 +88,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
             residual_i[i] = (100-qcmp_phase)^2
             qcmp_all[i] = qcmp_phase
         end
-        
+
     end
 
     finalize_MAGEMin(gv,DB, z_b)
@@ -111,46 +100,6 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     return sum(residual_i)
 end
-
-function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
-    # global gv, z_b, DB, splx_data  = init_MAGEMin(database);
-
-    pressure = constraint.pressure
-    temperature = constraint.temperature
-    bulk = constraint.bulk
-    bulk_oxides = constraint.bulk_oxides
-
-    gv = define_bulk_rock(gv, bulk, bulk_oxides, sys_in, database);
-    gv, z_b, DB, splx_data = pwm_init(pressure, temperature, gv, z_b, DB, splx_data);
-
-    ss_names  = unsafe_string.(unsafe_wrap(Vector{Ptr{Int8}}, gv.SS_list, gv.len_ss));
-    ss_struct = unsafe_wrap(Vector{LibMAGEMin.SS_ref},DB.SS_ref_db,gv.len_ss);
-
-    ss_idx = findfirst(x->x==phase, ss_names);
-
-    W = unsafe_wrap(Vector{Cdouble},ss_struct[ss_idx].W, ss_struct[ss_idx].n_w);
-    W[:] = w_g
-
-    W_check = unsafe_wrap(Vector{Cdouble},ss_struct[ss_idx].W, ss_struct[ss_idx].n_w)
-
-    #println("W = ", w_g)
-    #println("W_check", W_check)
-
-    println("** calling MAGEMin at: P = $(pressure) kbar and T = $(temperature) K")
-    println("   pressure = ", pressure, " kbar")
-    println("   temperature = ", temperature, " K")
-    println("   bulk composition = ", bulk)
-    println("   bulk oxides = ", bulk_oxides)
-
-    out = pwm_run(gv, z_b, DB, splx_data);
-
-    # finalize_MAGEMin(gv,DB, z_b)
-
-    return out
-end
-
-
-
 
 
 # """

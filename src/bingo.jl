@@ -1,19 +1,14 @@
-using ThermoFit
-
-CST = global_constants()
-PARAMS = global_parameters()
-
 function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Calculate the quality factor for each given component of the selected phase
     # mod_comp: model composition in apfu
     # obs_comp: observed composition in apfu
     # obs_unc: uncertainty in observed composition in apfu
     #
-    # Returns: 
+    # Returns:
     # qcmp: quality factor for the given phase
     #
     # Reference: Duesterhoeft & Lanari (2020) Journal of Metamorphic Geology, 38, 527-551.
-    
+
     if PARAMS.debug
         println("\n--> bingo_calculate_qcmp_phase")
     end
@@ -60,7 +55,7 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     end
 
     qcmp_phase = sum(qcmp_small)/length(qcmp_small) * 100
-    
+
     if PARAMS.debug
         println("qcmp_phase: ", qcmp_phase)
     end
@@ -74,7 +69,7 @@ function bingo_generate_fake_uncertainties(obs_comp)
     # Returns:
     # obs_unc: fake uncertainties for testing
     #
-    # Reference: 
+    # Reference:
 
     # Set parameters
     min_uncertainty = 0.01
@@ -86,20 +81,3 @@ function bingo_generate_fake_uncertainties(obs_comp)
 
     return obs_unc
 end
-
-
-# The code below is used to generate the parameters for the fake uncertainties
-test_comp = [0.01,0.37,3.27,6.50,20.6]
-test_unc =  [0.01,0.01,0.02,0.05,0.10]
-
-test_unc./test_comp
-
-using Plots
-plot(test_comp,test_unc,seriestype=:scatter)
-
-# fit data (to be replaced b sigmoid function?)
-using Polynomials
-p = fit(test_comp, test_unc, 1)
-plot!([0,25], p.([0,25]), label = "fit", color=:red, linewidth=2)
-
-p

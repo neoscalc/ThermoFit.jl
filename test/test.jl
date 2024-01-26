@@ -131,6 +131,9 @@ margules = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 24
 
 using ThermoFit
 
+CST = global_constants()
+PARAMS = global_parameters()
+
 w_names =  ["W(phl,annm)",
             "W(phl,obi)",
             "W(phl,east)",
@@ -153,26 +156,26 @@ w_names =  ["W(phl,annm)",
             "W(tbi,mmbi)",
             "W(fbi,mmbi)"]
 
-w_initial_values = [12  0  0 ; 
-                    4  0  0 ; 
-                    10  0  0 ; 
-                    30  0  0 ; 
-                    8  0  0 ; 
-                    9  0  0 ; 
-                    8  0  0 ; 
-                    15  0  0 ; 
-                    32  0  0 ; 
-                    13.6  0  0 ; 
-                    6.3  0  0 ; 
-                    7  0  0 ; 
-                    24  0  0 ; 
-                    5.6  0  0 ; 
-                    8.1  0  0 ; 
-                    40  0  0 ; 
-                    1  0  0 ; 
-                    13  0  0 ; 
-                    40  0  0 ; 
-                    30  0  0 ; 
+w_initial_values = [12  0  0 ;
+                    4  0  0 ;
+                    10  0  0 ;
+                    30  0  0 ;
+                    8  0  0 ;
+                    9  0  0 ;
+                    8  0  0 ;
+                    15  0  0 ;
+                    32  0  0 ;
+                    13.6  0  0 ;
+                    6.3  0  0 ;
+                    7  0  0 ;
+                    24  0  0 ;
+                    5.6  0  0 ;
+                    8.1  0  0 ;
+                    40  0  0 ;
+                    1  0  0 ;
+                    13  0  0 ;
+                    40  0  0 ;
+                    30  0  0 ;
                     11.6  0  0]
 
 w_lower_bounds =   [0 0 0;
@@ -229,16 +232,13 @@ JOB = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_l
 job_check_consistency(JOB)
 
 # Import the constraints
-CST = global_constants()
-PARAMS = global_parameters()
-
 path_mineral = "test/data/biotite.csv"
 path_bulk = "test/data/bulk.csv"
 path_pt = "test/data/pt.csv"
 
-constraints = load_constraints(path_bulk, path_mineral, path_pt,["Si","Al","Mg", "Fe", "K", "Ti", "Mn"])
+constraints = load_constraints(path_bulk, path_mineral, path_pt,["Si","Al","Mg", "Fe", "K", "Ti", "Mn"]);
 
-# Call the inversion subroutine 
+# Call the inversion subroutine
 res, norm = inversion_run(JOB, constraints)
 
 # println(JOB.w_initial_values) # Note that we update JOB.w_initial_values in this version

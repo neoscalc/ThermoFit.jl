@@ -1,7 +1,14 @@
-using ThermoFit
-
 CST = global_constants()
 PARAMS = global_parameters()
+
+@with_kw struct constraint
+    pressure::Float64
+    temperature::Float64
+    bulk::Vector{Float64}
+    bulk_oxides::Vector{String}
+    mineral_composition::Vector{Float64}
+    mineral_elements::Vector{String}
+end
 
 function load_constraints(path_bulk, path_mineral, path_pt, element_list)
     oxide_list, bulk_oxide_mole = load_bulk_composition(path_bulk)
@@ -32,11 +39,24 @@ function load_constraints(path_bulk, path_mineral, path_pt, element_list)
 end
 
 
+"""
+    load_pt(path)
+
+Load pressure-temperature data from a CSV file.
+
+# Arguments
+- `path`: The path to the CSV file.
+
+# Returns
+- `pressure_kbar`: Pressure in kilobars.
+- `temperature_celsius`: Temperature in degree Celsius.
+
+"""
 function load_pt(path)
     df = DataFrame(CSV.File(path, header=1))
 
     pressure_bar = df[:,1]
-    pressure_kbar = df[:,1] ./ 10^3
+    pressure_kbar = pressure_bar ./ 10^3
 
     temperature_celsius = df[:,2]
 
@@ -44,6 +64,21 @@ function load_pt(path)
 end
 
 
+"""
+    load_mineral_composition(path, element_list)
+
+Load mineral composition data from a CSV file. CSV file is in "theriak"-like format: "SI", "AL", ... and must be converted to "Si", "Al", ... after loading.
+Reorder the elements according to `element_list`.
+
+# Arguments
+- `path`: The path to the CSV file containing the mineral composition data.
+- `element_list`: A list of elements to extract from the CSV file and use for the inversion.
+
+# Returns
+- `element_list`: The list of elements extracted from the CSV file.
+- `mineral_element_moles`: A matrix representing the mineral compositions ordered according to `element_list`.
+
+"""
 function load_mineral_composition(path, element_list)
     df = DataFrame(CSV.File(path, header=1))
 
@@ -224,7 +259,7 @@ function fix_order_structural_formula(comp_structural_formula_clean, oxides, con
 
     # Find the indices of the constraint elements in the structural formula
     constraint_element_idx = Array{Int64}(undef, length(constraint_element))
-    for i = 1:length(constraint_element)
+    for i = eachindex(constraint_element)
         constraint_element_idx[i] = CST.element_index[constraint_element[i]]
     end
     if PARAMS.debug
@@ -234,7 +269,7 @@ function fix_order_structural_formula(comp_structural_formula_clean, oxides, con
     # Obtain the corresponding indices of the oxide
     oxide_ordered = Array{String}(undef, length(constraint_element))
     oxide_idx = Array{Int64}(undef, length(constraint_element))
-    for i = 1:length(constraint_element)
+    for i = eachindex(constraint_element)
         oxide_ordered[i] = CST.oxide_index_reversed[constraint_element_idx[i]]
         oxide_idx[i] = findfirst(x->x==oxide_ordered[i], oxides)
     end
@@ -278,8 +313,8 @@ function job_check_consistency(JOB)
     for i = 1:nb_wg
         for j = 1:3
             if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
-                println("    ", JOB.w_names[i], "  \t", type_w[j], "\t ",JOB. w_initial_values[i,j], "\t ", JOB.w_lower_bounds[i,j], " \t ", JOB.w_upper_bounds[i,j]) 
-            end   
+                println("    ", JOB.w_names[i], "  \t", type_w[j], "\t ",JOB. w_initial_values[i,j], "\t ", JOB.w_lower_bounds[i,j], " \t ", JOB.w_upper_bounds[i,j])
+            end
         end
     end
 end
@@ -289,14 +324,14 @@ function get_variables_optim(JOB)
 
     nb_wg = length(JOB.w_names)
     type_w = ["WH","WS","WV"]
-    
+
     # Calculate first the number of variables
     count = 0
     for i = 1:nb_wg
         for j = 1:3
             if JOB.w_upper_bounds[i,j] > JOB.w_lower_bounds[i,j]
                 count = count + 1
-            end   
+            end
         end
     end
 
@@ -316,7 +351,7 @@ function get_variables_optim(JOB)
                 variables_optim_bounds[count,2] = JOB.w_upper_bounds[i,j]
                 variables_optim_coordinates[count,1] = i
                 variables_optim_coordinates[count,2] = j
-            end   
+            end
         end
     end
 
@@ -328,12 +363,15 @@ function calculate_w_g(variables_optim,variables_optim_coordinates, P, T, JOB)
     w_all = JOB.w_initial_values
 
     # replace the values using the coordinates
-    for i = 1:length(variables_optim)
+    for i = eachindex(variables_optim)
         w_all[variables_optim_coordinates[i,1], variables_optim_coordinates[i,2]] = variables_optim[i]
     end
-    
+
+    # convert deg C to K
+    T_K = T + 273.15
+
     # calculate the g values from WG = WH + T*WS + P*WV
-    w_g = w_all[:,1] .+ T .* w_all[:,2] .+ P .* w_all[:,3]
+    w_g = w_all[:,1] .+ T_K .* w_all[:,2] .+ P .* w_all[:,3]
 
     return w_g
 end

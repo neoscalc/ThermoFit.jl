@@ -17,7 +17,7 @@ PARAMS = global_parameters()
 end
 
 @testset "Bingo" begin
-    
+
     obs_comp = [1,1.2,3.1]
     obs_unc = [0.1,0.023,0.3]
     mod_comp = [0.9,1.3,3.4]
@@ -51,26 +51,26 @@ end
         "W(tbi,mmbi)",
         "W(fbi,mmbi)"]
 
-    w_initial_values = [12  0  0 ; 
-                4  0  0 ; 
-                10  0.1  3 ; 
-                30  0  0 ; 
-                8  0.2  4 ; 
-                9  0  0 ; 
-                8  0  0 ; 
-                15  0  0 ; 
-                32  0  0 ; 
-                13.6  0  0 ; 
-                6.3  0  0 ; 
-                7  0  0 ; 
-                24  0  0 ; 
-                5.6  0  0 ; 
-                8.1  0  0 ; 
-                40  0  0 ; 
-                1  0  0 ; 
-                13  0  0 ; 
-                40  0  0 ; 
-                30  0  0 ; 
+    w_initial_values = [12  0  0 ;
+                4  0  0 ;
+                10  0.1  3 ;
+                30  0  0 ;
+                8  0.2  4 ;
+                9  0  0 ;
+                8  0  0 ;
+                15  0  0 ;
+                32  0  0 ;
+                13.6  0  0 ;
+                6.3  0  0 ;
+                7  0  0 ;
+                24  0  0 ;
+                5.6  0  0 ;
+                8.1  0  0 ;
+                40  0  0 ;
+                1  0  0 ;
+                13  0  0 ;
+                40  0  0 ;
+                30  0  0 ;
                 11.6  0  0]
 
     w_lower_bounds =   [0 0 0;
@@ -126,6 +126,6 @@ end
     w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, JOB)
 
     @test w_g[3] ≈ 10 + 0.1 * 700 + 3 * 8
-    @test w_g[5] ≈ 8 + 0.2 * 700 + 4 * 8 
+    @test w_g[5] ≈ 8 + 0.2 * 700 + 4 * 8
 
 end

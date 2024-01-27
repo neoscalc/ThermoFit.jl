@@ -31,7 +31,7 @@ end
     w_lower_bounds::Matrix{Float64}                 # Lower bounds of the Margules for the solid solution (n_w x 3; columns: WH, WS, WV)
     w_upper_bounds::Matrix{Float64}                 # Upper bounds of the Margules for the solid solution (n_w x 3; columns: WH, WS, WV)
 
-    number_constraints_max::Int64 = 100                 # Number of constraints to be used during inversion (0=all)
+    number_constraints_max::Int64 = 100             # Number of constraints to be used during inversion (0=all)
 
 end
 

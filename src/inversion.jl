@@ -38,14 +38,10 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     println("\n-> New iteration with ",nb_to_use," constraints <-")
 
-    # initiate variables for printing in large jobs (print every 10%)
-    step_print = nb_to_use ÷ 10;
-    count = 0;
-
     # denormalise variables to optimise (Margules) for G-minimisation
     variables_optim_local = x0 .* norm
 
-    # Check if all parameters are within the bounds:
+    # Check if all parameters are within the bounds, if not return a very high residual:
     for i = eachindex(variables_optim_local)
         if variables_optim_local[i] < variables_optim_bounds[i,1]
             return 1e20
@@ -61,27 +57,27 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
     residual_i = zeros(nb_to_use)
     qcmp_all = zeros(nb_to_use)
 
-    @threads :static for i = eachindex(nb_to_use)
+    # Precalculate the w_g for each constraint
+    w_g_all = zeros(nb_to_use, length(JOB.w_initial_values[:,1]))
+    for i = eachindex(nb_to_use)
+        # Calculate w_g
+        w_g_all[i, :] = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
+    end
+
+    @threads for i in ProgressBar(1:nb_to_use)
         # identify thread and acess the MAGEMin_db of the thread
         id          = Threads.threadid()
+        # println("   Thread ",id," is working on constraint ",i," of ",nb_to_use)
         gv          = MAGEMin_db.gv[id]
         z_b         = MAGEMin_db.z_b[id]
         DB          = MAGEMin_db.DB[id]
         splx_data   = MAGEMin_db.splx_data[id]
 
-
-        # print progress
-        count = count + 1
-        if count == step_print
-            println("      $(i)/$(nb_to_use) (",i/nb_to_use*100,"%)")
-            count = 0
-        end
-
-        # Calculate w_g
-        w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
+        # # Calculate w_g
+        # w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
 
         # call the forward module
-        out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)
+        out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g_all[i, :], sys_in, gv, z_b, DB, splx_data)
 
         # check if the mineral is predicted to be stable
         if !(JOB.solid_solution in out.ph)

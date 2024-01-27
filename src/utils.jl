@@ -290,7 +290,7 @@ end
 
 
 function job_check_consistency(JOB)
-    println("*** Checking job consistency ***")
+    println("\n*** CHECKING JOB CONSISTENCY ***")
     nb_wg = length(JOB.w_names)
     if isequal(size(JOB.w_initial_values), (nb_wg, 3)) == false
         error("w_initial_values must be a matrix of size (nb_wg, 3)")
@@ -307,7 +307,8 @@ function job_check_consistency(JOB)
     else
         println(" - w_upper_bounds (size): ok")
     end
-
+    
+    println("   -----------------------------------------------------")
     println(" - Variables to be optimized [name type start min max]:")
     type_w = ["WH","WS","WV"]
     for i = 1:nb_wg
@@ -317,6 +318,8 @@ function job_check_consistency(JOB)
             end
         end
     end
+    println("   -----------------------------------------------------")
+    println(" - Maximum number of constraints: ", JOB.number_constraints_max)
 end
 
 

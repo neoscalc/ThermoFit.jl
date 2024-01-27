@@ -363,7 +363,8 @@ function get_variables_optim(JOB)
 end
 
 function calculate_w_g(variables_optim,variables_optim_coordinates, P, T, JOB)
-    w_all = JOB.w_initial_values
+    # copy needed for multi_threading, so every thread has its own copy of w_all
+    w_all = copy(JOB.w_initial_values)
 
     # replace the values using the coordinates
     for i = eachindex(variables_optim)

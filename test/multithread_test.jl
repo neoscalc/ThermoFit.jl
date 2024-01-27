@@ -42,10 +42,10 @@ w_g_single = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 
 @threads :static for i in eachindex(pressures)
     id          = Threads.threadid()
 
-    w_g = w_g_vec[i]
+    # w_g = w_g_vec[i]
 
-    # w_g = copy(w_g_single)
-    # w_g[3] = w_g_single[3] + (i-1) * 40
+    w_g = copy(w_g_single)
+    w_g[3] = w_g_single[3] + (i-1) * 40
     println("w_g = ", w_g)
 
     MAGEMin_db.gv[id] = define_bulk_rock(MAGEMin_db.gv[i], bulk, bulk_oxides, sys_in, MAGEMin_db.db)
@@ -69,5 +69,5 @@ w_g_single = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 
     out = pwm_run(gv, z_b, DB, splx_data);
 end
 
-# finalize_MAGEMin(gv,DB, z_b)
+Finalize_MAGEMin(MAGEMin_db)
 

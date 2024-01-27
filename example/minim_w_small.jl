@@ -83,32 +83,32 @@ w_lower_bounds =   [0 0 0;
                     0 0 0;
                     0 0 0];
 
-w_upper_bounds =   [0 0 0;
-                    0 0 0;
+w_upper_bounds =   [60 0 0;
                     60 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0;
-                    0 0 0];
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0;
+                    60 0 0];
 
 
 #
 
-number_constraints_max = 100;
+number_constraints_max = 10;
 
 # 5. Create the JOB structure
 JOB = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, number_constraints_max);
@@ -119,7 +119,7 @@ job_check_consistency(JOB)
 # 7. Import the constraints
 path_mineral = "data/biotite.csv";
 path_bulk = "data/bulk.csv";
-path_pt = "data/pt.csv";
+path_pt = "data/prediction_transfer_frozen_pt.csv";
 
 constraints = load_constraints(path_bulk, path_mineral, path_pt,["Si","Al","Mg", "Fe", "K", "Ti", "Mn"]);
 

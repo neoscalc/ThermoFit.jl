@@ -10,12 +10,17 @@ function inversion_run(JOB, constraints)
     x0 = variables_optim ./ norm
     nb_constraints = length(constraints)
 
+    # Initiate MAGEMin
+    MAGEMin_db  = Initialize_MAGEMin(JOB.thermodynamic_database, verbose=false);
+
     # # test call the objective function with the initial values (KEEP IT FOR TEST PURPOSES)
     # residual = objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
 
 
     # perform inversion
-    res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates), x0, NelderMead())
+    res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, NelderMead())
+
+    Finalize_MAGEMin(MAGEMin_db)
 
     return res, norm
 end
@@ -25,24 +30,9 @@ end
 
 Add an objective function Doc here.
 """
-function objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, sys_in = "mol")
+function objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db, sys_in = "mol")
 
-    variables_optim_local = x0 .* norm
-
-    # Check if all parameters are within the bounds:
-    for i = eachindex(variables_optim_local)
-        if variables_optim_local[i] < variables_optim_bounds[i,1]
-            return 1e20
-        elseif variables_optim_local[i] > variables_optim_bounds[i,2]
-            return 1e20
-        end
-    end
-
-    # Initiate MAGEMin (doesn't work)
-    global gv, z_b, DB, splx_data  = init_MAGEMin(JOB.thermodynamic_database);
-
-    gv.verbose = -1
-
+    # define number of constraints to use for the inversion
     if isequal(JOB.number_constraints_max,0)
         nb_to_use = nb_constraints
     elseif JOB.number_constraints_max > nb_constraints
@@ -51,26 +41,42 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         nb_to_use = JOB.number_constraints_max
     end
 
-    step_print = nb_to_use ÷ 10;
-    count = 0;
-
     println("\n-> New iteration with ",nb_to_use," constraints <-")
 
+    # denormalise variables to optimise (Margules) for G-minimisation
+    variables_optim_local = x0 .* norm
+
+    # Check if all parameters are within the bounds, if not return a very high residual:
+    for i = eachindex(variables_optim_local)
+        if variables_optim_local[i] < variables_optim_bounds[i,1]
+            return 1e20
+        elseif variables_optim_local[i] > variables_optim_bounds[i,2]
+            return 1e20
+        end
+    end
+
+    # Initiate vectors for residuals (to be minimised) and q_cpm (used as metric that is printed during the inversion)
     residual_i = zeros(nb_to_use)
     qcmp_all = zeros(nb_to_use)
-    for i = 1:nb_to_use #nb_constraints
 
-        # print for large job
-        count = count + 1
-        if count == step_print
-            println("      $(i)/$(nb_to_use) (",i/nb_to_use*100,"%)")
-            count = 0
-        end
+    # # Precalculate the w_g for each constraint
+    # w_g_all = zeros(nb_to_use, length(JOB.w_initial_values[:,1]))
+    # for i = eachindex(nb_to_use)
+    #     # Calculate w_g
+    #     w_g_all[i, :] = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
+    # end
 
-        # Calculate w_g
+    @threads for i in ProgressBar(1:nb_to_use)
+        # identify thread and acess the MAGEMin_db of the thread
+        id          = Threads.threadid()
+        # println("   Thread ",id," is working on constraint ",i," of ",nb_to_use)
+        gv          = MAGEMin_db.gv[id]
+        z_b         = MAGEMin_db.z_b[id]
+        DB          = MAGEMin_db.DB[id]
+        splx_data   = MAGEMin_db.splx_data[id]
+
+        # # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
-
-        # println(w_g)
 
         # call the forward module
         out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)
@@ -99,8 +105,6 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         end
 
     end
-
-    finalize_MAGEMin(gv,DB, z_b)
 
     # println("residual_i = ", 100 .- sqrt.(residual_i))
     # println("q_cpm      = ", qcmp_all)

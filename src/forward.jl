@@ -35,8 +35,7 @@ function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, spl
 
     ss_idx = findfirst(x->x==phase, ss_names);
 
-    W = unsafe_wrap(Vector{Cdouble},ss_struct[ss_idx].W, ss_struct[ss_idx].n_w);
-    W[:] = w_g
+    unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
 
     # println("W = ", w_g)
 

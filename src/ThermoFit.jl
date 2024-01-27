@@ -1,5 +1,5 @@
 module ThermoFit
-
+using Base.Threads
 using Reexport
 using Parameters
 using CSV

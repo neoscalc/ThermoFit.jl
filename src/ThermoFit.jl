@@ -4,7 +4,7 @@ using Reexport
 using Parameters
 using CSV
 using DataFrames
-using MAGEMin_jll
+# using MAGEMin_jll
 using Optim
 using ProgressBars
 

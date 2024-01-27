@@ -108,7 +108,7 @@ w_upper_bounds =   [0 0 0;
 
 #
 
-number_constraints_max = 10;
+number_constraints_max = 100;
 
 # 5. Create the JOB structure
 JOB = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, number_constraints_max);

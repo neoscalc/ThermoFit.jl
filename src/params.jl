@@ -14,7 +14,7 @@ Sets up global parameters for the inversion problem
 """
 @with_kw struct global_parameters
 
-    debug::Bool = false                              # Debug mode: true or false
+    debug::Bool = false                             # Debug mode: true or false
 
     thermodynamic_database::String = "mp"           # Thermodynamic database to use (mp, alk, ig, igd, mb, um)
     solid_solution::String = "bi"                   # Solid solution to optimise (MAGEMin name)
@@ -31,7 +31,11 @@ end
     w_lower_bounds::Matrix{Float64}                 # Lower bounds of the Margules for the solid solution (n_w x 3; columns: WH, WS, WV)
     w_upper_bounds::Matrix{Float64}                 # Upper bounds of the Margules for the solid solution (n_w x 3; columns: WH, WS, WV)
 
+    algorithm::String = "Nelder-Mead"               # Algorithm to use for the inversion (Nelder-Mead, Particle Swarm)
+    number_iterations_max::Int64 = 1000             # Maximum number of iterations
+    normalization::Bool = true                      # Normalize the variables to optimise (Margules) for G-minimisation
     number_constraints_max::Int64 = 100             # Number of constraints to be used during inversion (0=all)
+    max_time_seconds::Int64 = 1000                  # Maximum time in seconds for the inversion (0=unlimited)
 
 end
 

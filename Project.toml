@@ -1,5 +1,7 @@
 name = "ThermoFit"
 uuid = "ed073984-b0cd-4059-a159-27398179674b"
+authors = ["Philip Hartmeier & Pierre Lanari"]
+version = "0.0.1"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"

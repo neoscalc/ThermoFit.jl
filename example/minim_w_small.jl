@@ -1,7 +1,18 @@
-# This file shows an example of how to use the ThermoFit package to adjust Margules parameters
+# ---------------------------------------------------------------------------------------------
+#                    ------------------------------------------------
+#                   |         THERMOFIT 0.0.1 - EXAMPLE FILE         |
+#                    ------------------------------------------------
 #
-# Philip Hartmeier & Pierre Lanari — February 2024, Cassis
-
+# This file shows an example of how to use the ThermoFit package to adjust Margules parameters.
+# Description will be added in the future. For now, please refer to the documentation.
+#  
+# Philip Hartmeier & Pierre Lanari
+# February 2024 (Cassis, France)
+#
+#        | /=   `/ () |_| /?   ~|~ |-| [- /? |\/| () |) `/ |\| /\ |\/| | (   |) /\ ~|~ /\   
+#                 _\~ |_| ( /< _\~   |_| _\~ [-   ~|~ |-| [- /? |\/| () /= | ~|~ 
+#
+# ---------------------------------------------------------------------------------------------
 
 # 1. Change the working directory to the folder where this file is located
 cd(@__DIR__)
@@ -87,8 +98,8 @@ w_upper_bounds =   [60 0 0;
                     60 0 0;
                     60 0 0;
                     60 0 0;
-                    60 0 0;
-                    60 0 0;
+                    0 0 0;
+                    0 0 0;
                     0 0 0;
                     0 0 0;
                     0 0 0;
@@ -105,13 +116,16 @@ w_upper_bounds =   [60 0 0;
                     0 0 0;
                     0 0 0];
 
-
 #
 
-number_constraints_max = 10;
+algorithm = "ParticleSwarm";                   # use "NelderMead" (recommended) or "ParticleSwarm"
+number_iterations_max = 1000;               # maximum number of iterations
+normalization = false;                       # normalize the variables to optimise (Margules) 
+number_constraints_max = 10;                # maximum number of constraints to use for the inversion
+max_time_seconds = 60;                      # maximum time in seconds for the inversion
 
 # 5. Create the JOB structure
-JOB = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, number_constraints_max);
+JOB = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds);
 
 # 6. Check JOB
 job_check_consistency(JOB)
@@ -127,4 +141,10 @@ constraints = load_constraints(path_bulk, path_mineral, path_pt,["Si","Al","Mg",
 res, norm = inversion_run(JOB, constraints)
 
 # println(JOB.w_initial_values) # Note that we update JOB.w_initial_values in this version
-println(res.minimizer.*norm)
+job_check_consistency(JOB)
+println("Margules parameters:")
+if JOB.normalization == true
+    println(res.minimizer .* norm)
+else
+    println(res.minimizer)
+end

@@ -7,7 +7,11 @@ function inversion_run(JOB, constraints)
 
     # Set parameters for the inversion
     norm = variables_optim
-    x0 = variables_optim ./ norm
+    if JOB.normalization == true
+        x0 = variables_optim ./ norm
+    else
+        x0 = variables_optim
+    end
     nb_constraints = length(constraints)
 
     # Initiate MAGEMin
@@ -15,11 +19,27 @@ function inversion_run(JOB, constraints)
 
     # # test call the objective function with the initial values (KEEP IT FOR TEST PURPOSES)
     # residual = objective_function(x0, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates)
+    max_time_seconds = JOB.max_time_seconds
 
+    # perform inversion using the Nelder-Mead algorithm
+    if JOB.algorithm == "NelderMead"
+        res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, NelderMead(), Optim.Options(time_limit = max_time_seconds))
+    elseif JOB.algorithm == "ParticleSwarm"
+        
+        if JOB.normalization == true
+            res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, ParticleSwarm(; lower = variables_optim_bounds[:,1] ./ norm, upper = variables_optim_bounds[:,2] ./ norm), Optim.Options(time_limit = max_time_seconds))  # n_particles = 0
+        else
+            println("x0 = ", x0)
+            println("lower = ", [variables_optim_bounds[:,1]])
+            println("upper = ", [variables_optim_bounds[:,2]])
 
-    # perform inversion
-    res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, NelderMead())
-
+            res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, ParticleSwarm(; lower = variables_optim_bounds[:,1], upper = variables_optim_bounds[:,2]), Optim.Options(time_limit = max_time_seconds))  # n_particles = 0
+        end
+    else
+        res = 1e20
+        println("Error: algorithm not recognised")
+    end
+    
     Finalize_MAGEMin(MAGEMin_db)
 
     return res, norm
@@ -43,8 +63,12 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     println("\n-> New iteration with ",nb_to_use," constraints <-")
 
-    # denormalise variables to optimise (Margules) for G-minimisation
-    variables_optim_local = x0 .* norm
+    # Denormalise variables to optimise (Margules) for G-minimisation
+    if JOB.normalization == true
+        variables_optim_local = x0 .* norm
+    else
+        variables_optim_local = x0 
+    end
 
     # Check if all parameters are within the bounds, if not return a very high residual:
     for i = eachindex(variables_optim_local)
@@ -83,7 +107,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
         # check if the mineral is predicted to be stable
         if !(JOB.solid_solution in out.ph)
-            println("   Achtung: ",JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
+            # println("   Achtung: ",JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
             residual_i[i] = 100
             qcmp_all[i] = 0
         else

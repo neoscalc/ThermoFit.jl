@@ -23,23 +23,23 @@ function inversion_run(JOB, constraints)
 
     # perform inversion using the Nelder-Mead algorithm
     if JOB.algorithm == "NelderMead"
-        res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, NelderMead(), Optim.Options(time_limit = max_time_seconds))
+        res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, NelderMead(), Optim.Options(time_limit = max_time_seconds, iterations = JOB.number_iterations_max))
     elseif JOB.algorithm == "ParticleSwarm"
-        
+
         if JOB.normalization == true
-            res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, ParticleSwarm(; lower = variables_optim_bounds[:,1] ./ norm, upper = variables_optim_bounds[:,2] ./ norm), Optim.Options(time_limit = max_time_seconds))  # n_particles = 0
+            res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, ParticleSwarm(; lower = variables_optim_bounds[:,1] ./ norm, upper = variables_optim_bounds[:,2] ./ norm), Optim.Options(time_limit = max_time_seconds, iterations = JOB.number_iterations_max))  # n_particles = 0
         else
             println("x0 = ", x0)
             println("lower = ", [variables_optim_bounds[:,1]])
             println("upper = ", [variables_optim_bounds[:,2]])
 
-            res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, ParticleSwarm(; lower = variables_optim_bounds[:,1], upper = variables_optim_bounds[:,2]), Optim.Options(time_limit = max_time_seconds))  # n_particles = 0
+            res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, ParticleSwarm(; lower = variables_optim_bounds[:,1], upper = variables_optim_bounds[:,2]), Optim.Options(time_limit = max_time_seconds, iterations = JOB.number_iterations_max))  # n_particles = 0
         end
     else
         res = 1e20
         println("Error: algorithm not recognised")
     end
-    
+
     Finalize_MAGEMin(MAGEMin_db)
 
     return res, norm
@@ -67,7 +67,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
     if JOB.normalization == true
         variables_optim_local = x0 .* norm
     else
-        variables_optim_local = x0 
+        variables_optim_local = x0
     end
 
     # Check if all parameters are within the bounds, if not return a very high residual:

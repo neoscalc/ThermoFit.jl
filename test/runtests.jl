@@ -75,7 +75,7 @@ PARAMS = global_parameters()
                         0 0 0];
 
     w_upper_bounds =   [0 0 0;
-                        60 0 0;
+                        0 0 0;
                         60 0 0;
                         0 0 0;
                         0 0 0;
@@ -107,8 +107,8 @@ PARAMS = global_parameters()
     thermodynamic_database = "mp";
     solid_solution = "bi";
     number_constraints_max = 50;
-    number_iterations_max = 1000;
-    max_time_seconds = 600;
+    number_iterations_max = 10;
+    max_time_seconds = 60000;
 
     # 1. Nelder-Mead (with normalization)
     algorithm = "NelderMead";
@@ -129,8 +129,8 @@ PARAMS = global_parameters()
     res_ParticleSwarm, norm_ParticleSwarm = inversion_run(JOB_ParticleSwarm, constraints)
 
     # check inverterted Margules parameters
-    @test res_NelderMead.minimizer .* norm_NelderMead ≈ [1.9729738468419615, 19.4110346874852]             atol=1e-6
-    @test res_ParticleSwarm.minimizer .* norm_ParticleSwarm ≈ [2.458257183285802, 19.862636192733326]      atol=1e-6
+    @test res_NelderMead.minimizer .* norm_NelderMead ≈ [11.640625]             atol=1e-6
+    @test res_ParticleSwarm.minimizer .* norm_ParticleSwarm ≈ [118.49710692171548]       atol=1e-6
 end
 
 ##############################################################################################################

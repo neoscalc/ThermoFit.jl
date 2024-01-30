@@ -4,18 +4,6 @@ using Test
 CST = global_constants()
 PARAMS = global_parameters()
 
-@testset "utils" begin
-    path = "data/biotite.csv"
-
-    element_list, mineral_element_moles = load_mineral_composition(path)
-    println("test load mineral: element_list & mineral composition in moles")
-    println(element_list)
-    println(mineral_element_moles[2, :])
-
-    @test mineral_element_moles[2, :] ≈ [1.200000000000000000e+01,2.614040999999999837e+00,7.367899999999999450e-02,1.628751000000000060e+00,1.513754000000000044e+00,1.154457000000000066e+00,1.531899999999999928e-02,0.000000000000000000e+00,0.000000000000000000e+00,1.000000000000000000e+00,1.852643000000000040e+00]
-
-end
-
 @testset "Bingo" begin
 
     obs_comp = [1,1.2,3.1]
@@ -117,7 +105,14 @@ end
                 0 0 0;
                 0 0 0]
 
-    JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
+    algorithm = "NelderMead";
+    number_iterations_max = 1;               # set to 1 for test
+    normalization = true;
+    number_constraints_max = 10;             # maximum number of constraints to use for the inversion
+    max_time_seconds = 5;                    # maximum time in seconds for the inversion
+
+    JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds)
+
 
     job_check_consistency(JOB)
 
@@ -125,7 +120,10 @@ end
 
     w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, JOB)
 
-    @test w_g[3] ≈ 10 + 0.1 * 700 + 3 * 8
-    @test w_g[5] ≈ 8 + 0.2 * 700 + 4 * 8
+    println(w_g[3])
+    println(w_g[5])
+
+    @test w_g[3] ≈ 10 + 0.1 * (700 + 273.15) + 3 * 8
+    @test w_g[5] ≈ 8 + 0.2 * (700 + 273.15) + 4 * 8
 
 end

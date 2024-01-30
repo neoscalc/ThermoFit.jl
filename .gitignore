@@ -3,3 +3,6 @@
 libMAGEMin.dylib
 
 Manifest.toml
+
+development_and_exploration
+development_and_exploration/*

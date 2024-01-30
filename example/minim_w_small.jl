@@ -5,12 +5,12 @@
 #
 # This file shows an example of how to use the ThermoFit package to adjust Margules parameters.
 # Description will be added in the future. For now, please refer to the documentation.
-#  
+#
 # Philip Hartmeier & Pierre Lanari
 # February 2024 (Cassis, France)
 #
-#        | /=   `/ () |_| /?   ~|~ |-| [- /? |\/| () |) `/ |\| /\ |\/| | (   |) /\ ~|~ /\   
-#                 _\~ |_| ( /< _\~   |_| _\~ [-   ~|~ |-| [- /? |\/| () /= | ~|~ 
+#        | /=   `/ () |_| /?   ~|~ |-| [- /? |\/| () |) `/ |\| /\ |\/| | (   |) /\ ~|~ /\
+#                 _\~ |_| ( /< _\~   |_| _\~ [-   ~|~ |-| [- /? |\/| () /= | ~|~
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -120,7 +120,7 @@ w_upper_bounds =   [60 0 0;
 
 algorithm = "ParticleSwarm";                   # use "NelderMead" (recommended) or "ParticleSwarm"
 number_iterations_max = 1000;               # maximum number of iterations
-normalization = false;                       # normalize the variables to optimise (Margules) 
+normalization = false;                       # normalize the variables to optimise (Margules)
 number_constraints_max = 10;                # maximum number of constraints to use for the inversion
 max_time_seconds = 60;                      # maximum time in seconds for the inversion
 

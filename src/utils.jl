@@ -16,7 +16,7 @@ function load_constraints(path_bulk, path_mineral, path_pt, element_list)
     pressure_kbar, temperature_celsius = load_pt(path_pt)
 
     if PARAMS.debug
-        println("Bulk, mineral and pt succesfully loaded.")
+        println("Bulk, mineral, and P-T successfully loaded.")
     end
 
     # check if bulk_oxide_mole, mineral_element_mole, pressure_kbar and temperature_celsius have the same n_rows

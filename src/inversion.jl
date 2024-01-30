@@ -32,6 +32,8 @@ function inversion_run(JOB, constraints)
             println("x0 = ", x0)
             println("lower = ", [variables_optim_bounds[:,1]])
             println("upper = ", [variables_optim_bounds[:,2]])
+            # overwrite norm to be 1
+            norm = ones(length(x0))
 
             res = optimize(x -> objective_function(x, norm, JOB, constraints, nb_constraints, variables_optim_bounds, variables_optim_coordinates, MAGEMin_db), x0, ParticleSwarm(; lower = variables_optim_bounds[:,1], upper = variables_optim_bounds[:,2]), Optim.Options(time_limit = max_time_seconds, iterations = JOB.number_iterations_max))  # n_particles = 0
         end

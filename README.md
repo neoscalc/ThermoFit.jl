@@ -4,6 +4,8 @@
 
 ThermoFit is a Julia project for inversion to obtain thermodynamic properties of petrological phases.
 
+This proof-of-concept version of Thermofit.jl was developed for the submission of a research project "An integrated framework for developing accurate and fast observation-driven thermodynamic models" to the Swiss National Science Foundation in October 2024. 
+
 ### Installation
 
 ```julia-repl

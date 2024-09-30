@@ -38,7 +38,6 @@ inversion_run(JOB, constraints)
 
 ### Funding
 
-The development of this package was supported by the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (grant agreement No 850530).
-
+The development of this package was partly supported by the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (grant agreement No 850530).
 
 ThermoFit was created by Philip Hartmeier & Pierre Lanari; February 2024 (Cassis, France)

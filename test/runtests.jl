@@ -5,9 +5,11 @@ CST = global_constants()
 PARAMS = global_parameters()
 
 @testset "ThermoFit" begin
-    cd(@__DIR__)
 
-    # set-up margules: Test inversion of "W(phl,obi)" & "W(phl,east)", within 0-60:
+@testset "full_inversion_test" begin
+    cd(@__DIR__)
+    # start with the Margules for biotite from White et al. (2014) but modify 
+    # allow only the Margules W(phl,annm) to change within a range of -100 - 100 kJ/mol
     w_names =  ["W(phl,annm)",
                 "W(phl,obi)",
                 "W(phl,east)",
@@ -30,83 +32,39 @@ PARAMS = global_parameters()
                 "W(tbi,mmbi)",
                 "W(fbi,mmbi)"];
 
-    w_initial_values = [12   0 0;
-                        4    0 0;
-                        10   0 0;
-                        30   0 0;
-                        8    0 0;
-                        9    0 0;
-                        8    0 0;
-                        15   0 0;
-                        32   0 0;
-                        13.6 0 0;
-                        6.3  0 0;
-                        7    0 0;
-                        24   0 0;
-                        5.6  0 0;
-                        8.1  0 0;
-                        40   0 0;
-                        1    0 0;
-                        13   0 0;
-                        40   0 0;
-                        30   0 0;
-                        11.6 0 0];
+    w_initial_values = [1.  0  0 ;
+                        4  0  0 ;
+                        10  0  0 ;
+                        30  0  0 ;
+                        8  0  0 ;
+                        9  0  0 ;
+                        8  0  0 ;
+                        15  0  0 ;
+                        32  0  0 ;
+                        13.6  0  0 ;
+                        6.3  0  0 ;
+                        7  0  0 ;
+                        24  0  0 ;
+                        5.6  0  0 ;
+                        8.1  0  0 ;
+                        40  0  0 ;
+                        1  0  0 ;
+                        13  0  0 ;
+                        40  0  0 ;
+                        30  0  0 ;
+                        11.6  0  0];
 
-    w_lower_bounds =   [0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0];
+    w_lower_bounds = copy(w_initial_values)
+    w_lower_bounds[1,1] = -100;
+    w_upper_bounds = copy(w_initial_values)
+    w_upper_bounds[1,1] = 100;
 
-    w_upper_bounds =   [0 0 0;
-                        0 0 0;
-                        60 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0];
-
-    # load test data
-    path_mineral = "test_data/test_biotite_composition.csv";
-    path_bulk = "test_data/test_bulk.csv";
-    path_pt = "test_data/test_pt.csv";
-
-    constraints = load_constraints(path_bulk, path_mineral, path_pt, ["Si","Al","Mg", "Fe", "K", "Ti", "Mn"]);
+    constraints = read_constraints_from_yml("test_data/gen_data_FPWMP_biotites.yml")
 
     # set-up two jobs for testing the two optimisation algorithms:
     thermodynamic_database = "mp";
     solid_solution = "bi";
-    number_constraints_max = 50;
+    number_constraints_max = 10;
     number_iterations_max = 10;
     max_time_seconds = 60000;
 
@@ -129,19 +87,16 @@ PARAMS = global_parameters()
     res_ParticleSwarm, norm_ParticleSwarm = inversion_run(JOB_ParticleSwarm, constraints)
 
     # check inverterted Margules parameters
-    @test res_NelderMead.minimizer .* norm_NelderMead ≈ [11.640625]             atol=1e-6
+    @test res_NelderMead.minimizer .* norm_NelderMead ≈ [12.]             atol=1
     # ParticleSwarm is stochastic, so we only check if the number of iterations is equal to the maximum number of iterations
     @test res_ParticleSwarm.iterations == 10
 end
 
 ##############################################################################################################
 # Test of individual modules and functions therein
-#
-# Note: The tests are not exhaustive and do not cover all possible cases.
-#
 ##############################################################################################################
 
-@testset "Bingo" begin
+@testset "bingo.jl" begin
 
     obs_comp = [1,1.2,3.1]
     obs_unc = [0.1,0.023,0.3]
@@ -151,6 +106,23 @@ end
 
     @test qcmp ≈ 69.277480978266283 atol=1e-6
 
+end
+
+@testset "forward.jl" begin
+    MAGEMin_db  = Initialize_MAGEMin("mp", verbose=false)
+
+    # identify thread and acess the MAGEMin_db of the thread
+    id          = Threads.threadid()
+    gv          = MAGEMin_db.gv[id]
+    z_b         = MAGEMin_db.z_b[id]
+    DB          = MAGEMin_db.DB[id]
+    splx_data   = MAGEMin_db.splx_data[id]
+
+    # use unaltered w_g = W_H from the mp database
+    w_g = w_initial_values = [12, 4, 10, 30, 8, 9, 8, 15, 32, 13.6, 6.3, 7, 24, 5.6, 8.1, 40, 1, 13, 40, 30, 11.6]
+    
+    # set up constraint
+    # forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
 end
 
 @testset "Generation of w_g from variables_optim" begin
@@ -263,4 +235,5 @@ end
     @test w_g[3] ≈ 10 + 0.1 * (700 + 273.15) + 3 * 8
     @test w_g[5] ≈ 8 + 0.2 * (700 + 273.15) + 4 * 8
 
+end
 end

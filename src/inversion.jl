@@ -1,9 +1,6 @@
 function inversion_run(JOB, constraints)
-
     # get the variables to variables_optim_coordinates
     variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
-
-    # println(variables_optim)
 
     # Set parameters for the inversion
     norm = variables_optim
@@ -85,12 +82,6 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
     residual_i = zeros(nb_to_use)
     qcmp_all = zeros(nb_to_use)
 
-    # # Precalculate the w_g for each constraint
-    # w_g_all = zeros(nb_to_use, length(JOB.w_initial_values[:,1]))
-    # for i = eachindex(nb_to_use)
-    #     # Calculate w_g
-    #     w_g_all[i, :] = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
-    # end
 
     @threads for i in ProgressBar(1:nb_to_use)
         # identify thread and acess the MAGEMin_db of the thread
@@ -102,8 +93,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         splx_data   = MAGEMin_db.splx_data[id]
 
         # # Calculate w_g
-        w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
-
+        w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure_GPa, constraints[i].temperature_C, JOB)
         # call the forward module
         out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)
 
@@ -113,18 +103,20 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
             residual_i[i] = 100
             qcmp_all[i] = 0
         else
-            comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,JOB.solid_solution,12)
+            composition_predicted = out.SS_vec[findfirst(x->x==JOB.solid_solution, out.ph)].Comp_apfu
+            #reorder to match the order of elements in the constraint
+            idx_elements_constraint_in_out = indexin(constraints[i].mineral_elements, out.elements)
+            if nothing in idx_elements_constraint_in_out
+                @error "Error: Constraint #$(i) has a mineral composition with elements that are not in the predicted mineral composition."
+            else
+                composition_predicted = composition_predicted[idx_elements_constraint_in_out]
+            end
 
-            constraint_composition = constraints[i].mineral_composition
-            constraint_element = constraints[i].mineral_elements
-
-            comp_structural_formula_clean_ordered = fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)
-
+            # compare predicted composition with the constraint composition
+            # calculate a loss (q_cmp)
+            constraint_composition = constraints[i].mineral_composition_apfu[JOB.solid_solution]
             constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
-
-            qcmp_phase = bingo_calculate_qcmp_phase(comp_structural_formula_clean_ordered,constraint_composition,constraint_uncertainties)
-
-            # println("\n\n",qcmp_phase,"\n\n")
+            qcmp_phase = bingo_calculate_qcmp_phase(composition_predicted,constraint_composition,constraint_uncertainties)
 
             residual_i[i] = (100-qcmp_phase)^2
             qcmp_all[i] = qcmp_phase
@@ -141,95 +133,3 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
     return sum(residual_i)
 end
-
-
-# """
-#     objective_function(*args)
-
-# Add an objectove function here.
-# """
-# function objective_function(x0, norm, JOB, constraints)
-#     mineral_compositions = zeros(size(constraints)[1], 11)
-#     mineral_composition = zeros(11)
-#     for i = eachindex(constraints)
-#         constrain = constraints[i]
-#         out = forward_call(phase, database, constrain, margules, sys_in)
-
-#         phase_idx = findfirst(x->x==phase, out.ph)
-#         # extract the mineral composition in wt%
-#         mineral_composition .= out.SS_vec[phase_idx].Comp_wt
-#         mineral_compositions[i, :] .= mineral_composition
-#     end
-
-#     return mineral_compositions
-# end
-
-# # # test objective_function
-# # database = "mp"
-
-# # constraint_A = Constraint(8.0, 650, [70.999, 12.805, 0.771, 3.978, 6.342, 2.7895, 1.481, 0.758, 0.72933, 0.075, 30.0], ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "K2O"; "Na2O"; "TiO2"; "O"; "MnO"; "H2O"])
-# # constraint_B = Constraint(8.0, 600, [70.999, 12.805, 0.771, 3.978, 6.342, 2.7895, 1.481, 0.758, 0.72933, 0.075, 30.0], ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "K2O"; "Na2O"; "TiO2"; "O"; "MnO"; "H2O"])
-
-# # constraints = [constraint_A, constraint_B]
-
-# # phase = "bi"
-# # margules = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 24.0, 5.6, 8.1, 40.0, 1.0, 13.0, 40.0, 30.0, 11.6]
-
-# # @btime objective_function(margules, constraints, database, phase, "wt")
-# # # 213.704 ms (896 allocations: 58.55 KiB)
-
-
-
-
-
-
-
-
-
-
-# # test forward_call
-# database = "mp"
-# global gv, z_b, DB, splx_data  = init_MAGEMin(database);
-
-# constraint = Constraint(8.0, 650, [70.999, 12.805, 0.771, 3.978, 6.342, 2.7895, 1.481, 0.758, 0.72933, 0.075, 30.0], ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "K2O"; "Na2O"; "TiO2"; "O"; "MnO"; "H2O"])
-# phase = "bi"
-# margules = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 24.0, 5.6, 8.1, 40.0, 1.0, 13.0, 40.0, 30.0, 11.6]
-
-# out = forward_call(phase, constraint, gv, z_b, DB, splx_data, margules, "wt")
-
-
-# """
-#     objective_function(*args)
-
-# Add an objectove function here.
-# """
-# function objective_function(margules, constraints, database="mp", phase = "bi", sys_in = "mol")
-#     mineral_compositions = zeros(size(constraints)[1], 11)
-#     mineral_composition = zeros(11)
-#     for i = eachindex(constraints)
-#         constrain = constraints[i]
-#         out = forward_call(phase, database, constrain, margules, sys_in)
-
-#         phase_idx = findfirst(x->x==phase, out.ph)
-#         # extract the mineral composition in wt%
-#         mineral_composition .= out.SS_vec[phase_idx].Comp_wt
-#         mineral_compositions[i, :] .= mineral_composition
-#     end
-
-#     return mineral_compositions
-# end
-
-# # # test objective_function
-# # database = "mp"
-
-# # constraint_A = Constraint(8.0, 650, [70.999, 12.805, 0.771, 3.978, 6.342, 2.7895, 1.481, 0.758, 0.72933, 0.075, 30.0], ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "K2O"; "Na2O"; "TiO2"; "O"; "MnO"; "H2O"])
-# # constraint_B = Constraint(8.0, 600, [70.999, 12.805, 0.771, 3.978, 6.342, 2.7895, 1.481, 0.758, 0.72933, 0.075, 30.0], ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "K2O"; "Na2O"; "TiO2"; "O"; "MnO"; "H2O"])
-
-# # constraints = [constraint_A, constraint_B]
-
-# # phase = "bi"
-# # margules = [12.0, 4.0, 10.0, 30.0, 8.0, 9.0, 8.0, 15.0, 32.0, 13.6, 6.3, 7.0, 24.0, 5.6, 8.1, 40.0, 1.0, 13.0, 40.0, 30.0, 11.6]
-
-# # @btime objective_function(margules, constraints, database, phase, "wt")
-# # # 213.704 ms (896 allocations: 58.55 KiB)
-

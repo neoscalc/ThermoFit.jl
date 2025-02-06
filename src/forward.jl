@@ -22,8 +22,8 @@ This function performs a forward calculation (Gibbs energy minimisation) using M
 - `out`: The output containing the results of the calculation.
 """
 function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
-    pressure = constraint.pressure
-    temperature = constraint.temperature
+    pressure = constraint.pressure_GPa * 10
+    temperature = constraint.temperature_C
     bulk = constraint.bulk
     bulk_oxides = constraint.bulk_oxides
 

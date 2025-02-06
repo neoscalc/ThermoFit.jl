@@ -5,9 +5,11 @@ CST = global_constants()
 PARAMS = global_parameters()
 
 @testset "ThermoFit" begin
-    cd(@__DIR__)
 
-    # set-up margules: Test inversion of "W(phl,obi)" & "W(phl,east)", within 0-60:
+@testset "full_inversion_test" begin
+    cd(@__DIR__)
+    # Test inversion of "W(phl,east)", within 0-60:
+    # set-up margules:
     w_names =  ["W(phl,annm)",
                 "W(phl,obi)",
                 "W(phl,east)",
@@ -136,12 +138,9 @@ end
 
 ##############################################################################################################
 # Test of individual modules and functions therein
-#
-# Note: The tests are not exhaustive and do not cover all possible cases.
-#
 ##############################################################################################################
 
-@testset "Bingo" begin
+@testset "bingo.jl" begin
 
     obs_comp = [1,1.2,3.1]
     obs_unc = [0.1,0.023,0.3]
@@ -151,6 +150,23 @@ end
 
     @test qcmp ≈ 69.277480978266283 atol=1e-6
 
+end
+
+@testset "forward.jl" begin
+    MAGEMin_db  = Initialize_MAGEMin("mp", verbose=false)
+
+    # identify thread and acess the MAGEMin_db of the thread
+    id          = Threads.threadid()
+    gv          = MAGEMin_db.gv[id]
+    z_b         = MAGEMin_db.z_b[id]
+    DB          = MAGEMin_db.DB[id]
+    splx_data   = MAGEMin_db.splx_data[id]
+
+    # use unaltered w_g = W_H from the mp database
+    w_g = w_initial_values = [12, 4, 10, 30, 8, 9, 8, 15, 32, 13.6, 6.3, 7, 24, 5.6, 8.1, 40, 1, 13, 40, 30, 11.6]
+    
+    # set up constraint
+    # forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
 end
 
 @testset "Generation of w_g from variables_optim" begin
@@ -263,4 +279,5 @@ end
     @test w_g[3] ≈ 10 + 0.1 * (700 + 273.15) + 3 * 8
     @test w_g[5] ≈ 8 + 0.2 * (700 + 273.15) + 4 * 8
 
+end
 end

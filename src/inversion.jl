@@ -102,7 +102,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         splx_data   = MAGEMin_db.splx_data[id]
 
         # # Calculate w_g
-        w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure, constraints[i].temperature, JOB)
+        w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure_GPa, constraints[i].temperature_C, JOB)
 
         # call the forward module
         out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)
@@ -115,7 +115,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         else
             comp_structural_formula_clean, oxides = calc_structural_formula_element_from_output(out,JOB.solid_solution,12)
 
-            constraint_composition = constraints[i].mineral_composition
+            constraint_composition = constraints[i].mineral_composition_apfu
             constraint_element = constraints[i].mineral_elements
 
             comp_structural_formula_clean_ordered = fix_order_structural_formula(comp_structural_formula_clean, oxides, constraint_element)

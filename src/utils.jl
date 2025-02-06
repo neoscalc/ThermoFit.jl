@@ -1,14 +1,6 @@
 CST = global_constants()
 PARAMS = global_parameters()
 
-@with_kw struct constraint
-    pressure::Float64
-    temperature::Float64
-    bulk::Vector{Float64}
-    bulk_oxides::Vector{String}
-    mineral_composition::Vector{Float64}
-    mineral_elements::Vector{String}
-end
 
 function load_constraints(path_bulk, path_mineral, path_pt, element_list)
     oxide_list, bulk_oxide_mole = load_bulk_composition(path_bulk)
@@ -26,9 +18,9 @@ function load_constraints(path_bulk, path_mineral, path_pt, element_list)
     end
 
     # create an empty array constraints with size(bulk_oxide_mole)[1] rows and 1 column
-    constraints = Vector{constraint}(undef, size(bulk_oxide_mole)[1])
+    constraints = Vector{Constraint}(undef, size(bulk_oxide_mole)[1])
     for i = eachindex(bulk_oxide_mole[:,1])
-        constraints[i] = constraint(pressure_kbar[i], temperature_celsius[i], bulk_oxide_mole[i, :], oxide_list, mineral_element_mole[i, :], element_list)
+        constraints[i] = Constraint(pressure_kbar[i] * 0.1, temperature_celsius[i], bulk_oxide_mole[i, :], oxide_list, "mol", mineral_element_mole[i, :], element_list)
     end
 
     if PARAMS.debug

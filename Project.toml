@@ -4,8 +4,6 @@ authors = ["Philip Hartmeier & Pierre Lanari"]
 version = "0.0.1"
 
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 MAGEMin_C = "e5d170eb-415a-4524-987b-12f1bce1ddab"
 NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"

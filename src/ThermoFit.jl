@@ -1,9 +1,7 @@
 module ThermoFit
 using Base.Threads
-using Reexport
+using Reexport: @reexport
 using Parameters
-using CSV
-using DataFrames
 using Optim
 using ProgressBars
 using OrderedCollections

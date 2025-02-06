@@ -8,8 +8,8 @@ PARAMS = global_parameters()
 
 @testset "full_inversion_test" begin
     cd(@__DIR__)
-    # Test inversion of "W(phl,east)", within 0-60:
-    # set-up margules:
+    # start with the Margules for biotite from White et al. (2014) but modify 
+    # allow only the Margules W(phl,annm) to change within a range of -100 - 100 kJ/mol
     w_names =  ["W(phl,annm)",
                 "W(phl,obi)",
                 "W(phl,east)",
@@ -32,83 +32,39 @@ PARAMS = global_parameters()
                 "W(tbi,mmbi)",
                 "W(fbi,mmbi)"];
 
-    w_initial_values = [12   0 0;
-                        4    0 0;
-                        10   0 0;
-                        30   0 0;
-                        8    0 0;
-                        9    0 0;
-                        8    0 0;
-                        15   0 0;
-                        32   0 0;
-                        13.6 0 0;
-                        6.3  0 0;
-                        7    0 0;
-                        24   0 0;
-                        5.6  0 0;
-                        8.1  0 0;
-                        40   0 0;
-                        1    0 0;
-                        13   0 0;
-                        40   0 0;
-                        30   0 0;
-                        11.6 0 0];
+    w_initial_values = [1.  0  0 ;
+                        4  0  0 ;
+                        10  0  0 ;
+                        30  0  0 ;
+                        8  0  0 ;
+                        9  0  0 ;
+                        8  0  0 ;
+                        15  0  0 ;
+                        32  0  0 ;
+                        13.6  0  0 ;
+                        6.3  0  0 ;
+                        7  0  0 ;
+                        24  0  0 ;
+                        5.6  0  0 ;
+                        8.1  0  0 ;
+                        40  0  0 ;
+                        1  0  0 ;
+                        13  0  0 ;
+                        40  0  0 ;
+                        30  0  0 ;
+                        11.6  0  0];
 
-    w_lower_bounds =   [0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0];
+    w_lower_bounds = copy(w_initial_values)
+    w_lower_bounds[1,1] = -100;
+    w_upper_bounds = copy(w_initial_values)
+    w_upper_bounds[1,1] = 100;
 
-    w_upper_bounds =   [0 0 0;
-                        0 0 0;
-                        60 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0;
-                        0 0 0];
-
-    # load test data
-    path_mineral = "test_data/test_biotite_composition.csv";
-    path_bulk = "test_data/test_bulk.csv";
-    path_pt = "test_data/test_pt.csv";
-
-    constraints = load_constraints(path_bulk, path_mineral, path_pt, ["Si","Al","Mg", "Fe", "K", "Ti", "Mn"]);
+    constraints = read_constraints_from_yml("test_data/gen_data_FPWMP_biotites.yml")
 
     # set-up two jobs for testing the two optimisation algorithms:
     thermodynamic_database = "mp";
     solid_solution = "bi";
-    number_constraints_max = 50;
+    number_constraints_max = 10;
     number_iterations_max = 10;
     max_time_seconds = 60000;
 
@@ -131,7 +87,7 @@ PARAMS = global_parameters()
     res_ParticleSwarm, norm_ParticleSwarm = inversion_run(JOB_ParticleSwarm, constraints)
 
     # check inverterted Margules parameters
-    @test res_NelderMead.minimizer .* norm_NelderMead ≈ [11.640625]             atol=1e-6
+    @test res_NelderMead.minimizer .* norm_NelderMead ≈ [12.]             atol=1
     # ParticleSwarm is stochastic, so we only check if the number of iterations is equal to the maximum number of iterations
     @test res_ParticleSwarm.iterations == 10
 end

@@ -10,17 +10,6 @@ struct Constraint
 end
 
 
-struct Constraint_legacy
-    pressure_GPa::Float64
-    temperature_C::Float64
-    bulk::Vector{Float64}
-    bulk_oxides::Vector{String}
-    sys_in::String
-    mineral_composition_apfu::Vector{Float64}
-    mineral_elements::Vector{String}
-end
-
-
 """
     read_constraints_from_yml(path::AbstractString)
 

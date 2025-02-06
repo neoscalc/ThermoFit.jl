@@ -1,3 +1,41 @@
+struct JOB{T1, T2, T3, T4, T5}
+    thermodynamic_database  ::T1                  # Thermodynamic database to use (mp, alk, ig, igd, mb, um)
+    phase_to_be_optimised   ::T1                  # Phase to optimise (MAGEMin name)
+
+    w_names                 ::T2
+    w_initial_values        ::T3                  # (n_w x 3; columns: WH, WS, WV)
+    w_lower_bounds          ::T3
+    w_upper_bounds          ::T3
+
+    algorithm         ::T1                 
+    number_iterations_max   ::T4                 
+    normalization           ::T5                 
+    number_constraints_max  ::Union{T4, Nothing} 
+    max_time_seconds        ::T4                
+
+    function JOB(thermodynamic_database::T1, phase_to_be_optimised::T1, w_names::T2,
+                 w_initial_values::T3, w_lower_bounds::T3, w_upper_bounds::T3;
+                 algorithm::T1 = "NelderMead", number_iterations_max::T4 = 1000,
+                 normalization::T5 = true, number_constraints_max ::Union{T4, Nothing} = nothing,
+                 max_time_seconds::T4 = 300) where {T1<:AbstractString, T2<:AbstractArray{String},
+                                                    T3<:AbstractArray{<:Real}, T4<:Integer, T5<:Bool}
+
+        # Check if the database is existent
+        if !(thermodynamic_database in ["mp", "alk", "ig", "igd", "mb", "um"])
+            @error "Error: Thermodynamic database name not recognised"
+        end
+
+        # Check if the algorithm is implemented
+        if !(algorithm in ["NelderMead", "ParticleSwarm"])
+            @error "Error: Algorithm not recognised"
+        end
+        
+        new{T1, T2, T3, T4, T5}(thermodynamic_database, phase_to_be_optimised, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+            algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds)
+    end
+end
+
+
 function inversion_run(JOB, constraints)
     # get the variables to variables_optim_coordinates
     variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
@@ -95,15 +133,15 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
         # # Calculate w_g
         w_g = calculate_w_g(variables_optim_local, variables_optim_coordinates, constraints[i].pressure_GPa, constraints[i].temperature_C, JOB)
         # call the forward module
-        out = forward_call(JOB.solid_solution, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)
+        out = forward_call(JOB.phase_to_be_optimised, JOB.thermodynamic_database, constraints[i], w_g, sys_in, gv, z_b, DB, splx_data)
 
         # check if the mineral is predicted to be stable
-        if !(JOB.solid_solution in out.ph)
-            # println("   Achtung: ",JOB.solid_solution," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
+        if !(JOB.phase_to_be_optimised in out.ph)
+            # println("   Achtung: ",JOB.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
             residual_i[i] = 100
             qcmp_all[i] = 0
         else
-            composition_predicted = out.SS_vec[findfirst(x->x==JOB.solid_solution, out.ph)].Comp_apfu
+            composition_predicted = out.SS_vec[findfirst(x->x==JOB.phase_to_be_optimised, out.ph)].Comp_apfu
             #reorder to match the order of elements in the constraint
             idx_elements_constraint_in_out = indexin(constraints[i].mineral_elements, out.elements)
             if nothing in idx_elements_constraint_in_out
@@ -114,7 +152,7 @@ function objective_function(x0, norm, JOB, constraints, nb_constraints, variable
 
             # compare predicted composition with the constraint composition
             # calculate a loss (q_cmp)
-            constraint_composition = constraints[i].mineral_composition_apfu[JOB.solid_solution]
+            constraint_composition = constraints[i].mineral_composition_apfu[JOB.phase_to_be_optimised]
             constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
             qcmp_phase = bingo_calculate_qcmp_phase(composition_predicted,constraint_composition,constraint_uncertainties)
 

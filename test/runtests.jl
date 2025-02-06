@@ -55,9 +55,9 @@ PARAMS = global_parameters()
                         11.6  0  0];
 
     w_lower_bounds = copy(w_initial_values)
-    w_lower_bounds[1,1] = -100;
+    w_lower_bounds[1,1] = -100
     w_upper_bounds = copy(w_initial_values)
-    w_upper_bounds[1,1] = 100;
+    w_upper_bounds[1,1] = 100
 
     constraints = read_constraints_from_yml("test_data/gen_data_FPWMP_biotites.yml")
 
@@ -66,25 +66,29 @@ PARAMS = global_parameters()
     solid_solution = "bi";
     number_constraints_max = 10;
     number_iterations_max = 10;
-    max_time_seconds = 60000;
+    max_time_seconds = 120;
 
     # 1. Nelder-Mead (with normalization)
     algorithm = "NelderMead";
     normalization = true;
 
-    JOB_NelderMead = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds);
-    job_check_consistency(JOB_NelderMead)
+    job_NelderMead = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+                         algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
+                         number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
+    job_check_consistency(job_NelderMead)
 
     # 2. Particle Swarm (without normalization)
     algorithm = "ParticleSwarm";
     normalization = false;
 
-    JOB_ParticleSwarm = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds);
-    job_check_consistency(JOB_ParticleSwarm)
+    job_ParticleSwarm = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+                            algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
+                            number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
+    job_check_consistency(job_ParticleSwarm)
 
     # RUN test inversions
-    res_NelderMead, norm_NelderMead = inversion_run(JOB_NelderMead, constraints)
-    res_ParticleSwarm, norm_ParticleSwarm = inversion_run(JOB_ParticleSwarm, constraints)
+    res_NelderMead, norm_NelderMead = inversion_run(job_NelderMead, constraints)
+    res_ParticleSwarm, norm_ParticleSwarm = inversion_run(job_ParticleSwarm, constraints)
 
     # check inverterted Margules parameters
     @test res_NelderMead.minimizer .* norm_NelderMead ≈ [12.]             atol=1
@@ -170,7 +174,7 @@ end
                 30  0  0 ;
                 11.6  0  0]
 
-    w_lower_bounds =   [0 0 0;
+    w_lower_bounds =   [0. 0 0;
                 0 0 0;
                 0 0 0;
                 0 0 0;
@@ -192,7 +196,7 @@ end
                 0 0 0;
                 0 0 0]
 
-    w_upper_bounds =   [0 0 0;
+    w_upper_bounds =   [0. 0 0;
                 0 0 0;
                 60 1 20;
                 0 0 0;
@@ -214,20 +218,14 @@ end
                 0 0 0;
                 0 0 0]
 
-    algorithm = "NelderMead";
-    number_iterations_max = 1;               # set to 1 for test
-    normalization = true;
-    number_constraints_max = 10;             # maximum number of constraints to use for the inversion
-    max_time_seconds = 5;                    # maximum time in seconds for the inversion
-
-    JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds)
+    job = JOB("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
 
 
-    job_check_consistency(JOB)
+    job_check_consistency(job)
 
-    variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
+    variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(job)
 
-    w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, JOB)
+    w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, job)
 
     println(w_g[3])
     println(w_g[5])

@@ -4,11 +4,34 @@ struct Constraint
     bulk::Vector{Float64}
     bulk_oxides::Vector{String}
     sys_in::String
+    assemblage::Vector{String}
+    mineral_composition_apfu::OrderedDict{String, Vector{Float64}}
+    mineral_elements::Vector{String}
+end
+
+
+struct Constraint_legacy
+    pressure_GPa::Float64
+    temperature_C::Float64
+    bulk::Vector{Float64}
+    bulk_oxides::Vector{String}
+    sys_in::String
     mineral_composition_apfu::Vector{Float64}
     mineral_elements::Vector{String}
 end
 
 
+"""
+    read_constraints_from_yml(path::AbstractString)
+
+Reads constraints from a YAML file.
+
+## Arguments
+- `path`: The path to the YAML file.
+
+## Returns
+- `constraints_vec`: A vector of `Constraint` objects.
+"""
 function read_constraints_from_yml(path::AbstractString)
     constraints_vec = Vector{Constraint}()
     open(path) do io
@@ -19,12 +42,23 @@ function read_constraints_from_yml(path::AbstractString)
             bulk = d["bulk"]
             bulk_oxides = d["bulk_oxides"]
             sys_in = d["sys_in"]
-            mineral_compositions_apfu = d["mineral_compositions_apfu"]
-            println(mineral_compositions_apfu)
+            assemblage = d["assemblage"]
+            mineral_composition_apfu = d["mineral_comp_apfu"]
+            mineral_elements = d["mineral_elements"]
 
-            constraint = Constraint(pressure_GPa, temperature_C, bulk, bulk_oxides, sys_in, mineral_compositions_apfu)
+            constraint = Constraint(pressure_GPa, temperature_C, bulk, bulk_oxides, sys_in, assemblage, mineral_composition_apfu, mineral_elements)
             push!(constraints_vec, constraint)
         end
     end
     return constraints_vec
 end
+
+
+
+# using MAGEMin_C
+# MAGEMin_db = Initialize_MAGEMin("mp")
+# P,T     = 4.0, 550.0
+# BULK_FPWMP = [64.13; 0.91; 19.63; 6.85; 0.08; 2.41; 0.65; 1.38; 3.95; 40.]
+# BULK_OXIDES = ["SiO2"; "TiO2"; "Al2O3"; "FeO"; "MnO"; "MgO"; "CaO"; "Na2O"; "K2O"; "H2O"]
+# sys_in  = "wt"
+# out     = single_point_minimization(P, T, MAGEMin_db, X=BULK_FPWMP, Xoxides=BULK_OXIDES, sys_in=sys_in)

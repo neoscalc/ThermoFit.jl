@@ -55,9 +55,9 @@ PARAMS = global_parameters()
                         11.6  0  0];
 
     w_lower_bounds = copy(w_initial_values)
-    w_lower_bounds[1,1] = -100;
+    w_lower_bounds[1,1] = -100
     w_upper_bounds = copy(w_initial_values)
-    w_upper_bounds[1,1] = 100;
+    w_upper_bounds[1,1] = 100
 
     constraints = read_constraints_from_yml("test_data/gen_data_FPWMP_biotites.yml")
 
@@ -66,25 +66,29 @@ PARAMS = global_parameters()
     solid_solution = "bi";
     number_constraints_max = 10;
     number_iterations_max = 10;
-    max_time_seconds = 60000;
+    max_time_seconds = 120;
 
     # 1. Nelder-Mead (with normalization)
     algorithm = "NelderMead";
     normalization = true;
 
-    JOB_NelderMead = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds);
-    job_check_consistency(JOB_NelderMead)
+    job_NelderMead = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+                         algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
+                         number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
+    job_check_consistency(job_NelderMead)
 
     # 2. Particle Swarm (without normalization)
     algorithm = "ParticleSwarm";
     normalization = false;
 
-    JOB_ParticleSwarm = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds);
-    job_check_consistency(JOB_ParticleSwarm)
+    job_ParticleSwarm = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+                            algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
+                            number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
+    job_check_consistency(job_ParticleSwarm)
 
     # RUN test inversions
-    res_NelderMead, norm_NelderMead = inversion_run(JOB_NelderMead, constraints)
-    res_ParticleSwarm, norm_ParticleSwarm = inversion_run(JOB_ParticleSwarm, constraints)
+    res_NelderMead, norm_NelderMead = inversion_run(job_NelderMead, constraints)
+    res_ParticleSwarm, norm_ParticleSwarm = inversion_run(job_ParticleSwarm, constraints)
 
     # check inverterted Margules parameters
     @test res_NelderMead.minimizer .* norm_NelderMead ≈ [12.]             atol=1
@@ -123,117 +127,77 @@ end
     
     # set up constraint
     # forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+
+
+    # test the calculate_w_g() function
+    w_initial = [1 1 3;
+                 1 1 4;
+                 1 2 5]
+
+    w_lower_bounds = [1 1 1;
+                      1 1 1;
+                      1 1 1]
+
+    w_upper_bounds = [1 1 2;
+                      1 1 2;
+                      2 2 2]
+
+    w_names = ["A", "B", "C"]
+
+    job = JOB("mp", "bi", w_names, w_initial, w_lower_bounds, w_upper_bounds)
+
+    margules_optim = [10, 20, 30, 40, 50]
+    P = 2.
+    T = 500.
+
+    w_matrix = copy(job.w_initial_values)   # copy needed for multi_threading, so every thread has its own copy of w_all
+    w_coordinates = job.margules_optim_coord
+    
+    w_g = calculate_w_g(margules_optim, P, T, w_matrix, w_coordinates)
+
+    w_mod = [1  1  30     # internally the function calculate_w_g() insert the values at the coordinates
+             1  1  40
+             10 20 50]
+
+    w_g_mod = w_mod[:,1] .- T .* w_mod[:,2] .+ P .* w_mod[:,3]
+    @test w_g == w_g_mod
 end
 
-@testset "Generation of w_g from variables_optim" begin
-    w_names =  ["W(phl,annm)",
-        "W(phl,obi)",
-        "W(phl,east)",
-        "W(phl,tbi)",
-        "W(phl,fbi)",
-        "W(phl,mmbi)",
-        "W(annm,obi)",
-        "W(annm,east)",
-        "W(annm,tbi)",
-        "W(annm,fbi)",
-        "W(annm,mmbi)",
-        "W(obi,east)",
-        "W(obi,tbi)",
-        "W(obi,fbi)",
-        "W(obi,mmbi)",
-        "W(east,tbi)",
-        "W(east,fbi)",
-        "W(east,mmbi)",
-        "W(tbi,fbi)",
-        "W(tbi,mmbi)",
-        "W(fbi,mmbi)"]
+@testset "inversion.jl" begin
+    # test the JOB struct and its constructor function(s)
+    # (1) test the JOB struct with only the required arguments
+    job = JOB("mp", "bi", ["W(phl,annm)"], [12], [0], [0])
+    @test typeof(job) == JOB{String, Vector{String}, Vector{Int64}, Int64, Bool}
 
-    w_initial_values = [12  0  0 ;
-                4  0  0 ;
-                10  0.1  3 ;
-                30  0  0 ;
-                8  0.2  4 ;
-                9  0  0 ;
-                8  0  0 ;
-                15  0  0 ;
-                32  0  0 ;
-                13.6  0  0 ;
-                6.3  0  0 ;
-                7  0  0 ;
-                24  0  0 ;
-                5.6  0  0 ;
-                8.1  0  0 ;
-                40  0  0 ;
-                1  0  0 ;
-                13  0  0 ;
-                40  0  0 ;
-                30  0  0 ;
-                11.6  0  0]
+    # (2) test typeerror when passing wrong type to JOB constructor
+    @test_throws MethodError JOB("mp", "bi", ["W(phl,annm)"], [12.], [0], [0])
 
-    w_lower_bounds =   [0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0]
+    # (3) test the variable_optimised() function (used within JOB constructor)
+    initial = [1 1 3;
+               1 1 4;
+               1 2 5]
 
-    w_upper_bounds =   [0 0 0;
-                0 0 0;
-                60 1 20;
-                0 0 0;
-                60 1 20;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0]
+    lower_bounds = [1 1 1;
+                    1 1 1;
+                    1 1 1]
 
-    algorithm = "NelderMead";
-    number_iterations_max = 1;               # set to 1 for test
-    normalization = true;
-    number_constraints_max = 10;             # maximum number of constraints to use for the inversion
-    max_time_seconds = 5;                    # maximum time in seconds for the inversion
+    upper_bounds = [1 1 2;
+                    1 1 2;
+                    2 2 2]
 
-    JOB = job("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds)
+    names = ["A", "B", "C"]
 
+    var_opti, var_opti_bounds, var_opti_names,  var_opti_coord, n = variable_optimised(initial, lower_bounds, upper_bounds, names)
 
-    job_check_consistency(JOB)
+    @test var_opti == [1, 2, 3, 4, 5]
 
-    variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(JOB)
+    # change the initial values at the coordinates
+    initial[var_opti_coord] .= [10, 20, 30, 40, 50]
 
-    w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, JOB)
+    init_mod = [1  1  30
+                1  1  40
+                10 20 50]
 
-    println(w_g[3])
-    println(w_g[5])
-
-    @test w_g[3] ≈ 10 + 0.1 * (700 + 273.15) + 3 * 8
-    @test w_g[5] ≈ 8 + 0.2 * (700 + 273.15) + 4 * 8
-
+    @test initial == init_mod
 end
 end

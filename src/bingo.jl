@@ -1,3 +1,7 @@
+# this should be removed in the future...
+PARAMS = global_parameters()
+CST = global_constants()
+
 function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Calculate the quality factor for each given component of the selected phase
     # mod_comp: model composition in apfu

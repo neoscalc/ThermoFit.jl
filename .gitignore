@@ -1,8 +1,5 @@
-
 .vscode/*
-libMAGEMin.dylib
-
 Manifest.toml
 
-development_and_exploration
-development_and_exploration/*
+# a julia file for quick testing with MAGEMin's outputs:
+QUICKTEST.jl

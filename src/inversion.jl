@@ -1,3 +1,8 @@
+
+"""
+    JOB(thermodynamic_database, phase_to_be_optimised, w_names, w_initial_values, w_lower_bounds, w_upper_bounds;
+        algorithm = "NelderMead", number_iterations_max = 1000, normalization = true, number_constraints_max = nothing, max_time_seconds = 300)
+"""
 struct JOB{T1, T2, T3, T4, T5}
     thermodynamic_database  ::T1                  # Thermodynamic database to use (mp, alk, ig, igd, mb, um)
     phase_to_be_optimised   ::T1                  # Phase to optimise (MAGEMin name)

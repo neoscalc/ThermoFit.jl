@@ -129,6 +129,16 @@ end
     # forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
 end
 
+@testset "inversion.jl" begin
+    # test the JOB struct and its constructor function(s)
+    # (1) test the JOB struct with only the required arguments
+    job = JOB("mp", "bi", ["W(phl,annm)"], [12], [0], [0])
+    @test typeof(job) == JOB{String, Vector{String}, Vector{Int64}, Int64, Bool}
+
+    # (2) test typeerror when passing wrong type to JOB constructor
+    @test_throws MethodError JOB("mp", "bi", ["W(phl,annm)"], [12.], [0], [0])
+end
+
 @testset "Generation of w_g from variables_optim" begin
     w_names =  ["W(phl,annm)",
         "W(phl,obi)",

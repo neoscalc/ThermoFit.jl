@@ -127,6 +127,40 @@ end
     
     # set up constraint
     # forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+
+
+    # test the calculate_w_g() function
+    w_initial = [1 1 3;
+                 1 1 4;
+                 1 2 5]
+
+    w_lower_bounds = [1 1 1;
+                      1 1 1;
+                      1 1 1]
+
+    w_upper_bounds = [1 1 2;
+                      1 1 2;
+                      2 2 2]
+
+    w_names = ["A", "B", "C"]
+
+    job = JOB("mp", "bi", w_names, w_initial, w_lower_bounds, w_upper_bounds)
+
+    margules_optim = [10, 20, 30, 40, 50]
+    P = 2.
+    T = 500.
+
+    w_matrix = copy(job.w_initial_values)   # copy needed for multi_threading, so every thread has its own copy of w_all
+    w_coordinates = job.margules_optim_coord
+    
+    w_g = calculate_w_g(margules_optim, P, T, w_matrix, w_coordinates)
+
+    w_mod = [1  1  30     # internally the function calculate_w_g() insert the values at the coordinates
+             1  1  40
+             10 20 50]
+
+    w_g_mod = w_mod[:,1] .- T .* w_mod[:,2] .+ P .* w_mod[:,3]
+    @test w_g == w_g_mod
 end
 
 @testset "inversion.jl" begin
@@ -137,111 +171,33 @@ end
 
     # (2) test typeerror when passing wrong type to JOB constructor
     @test_throws MethodError JOB("mp", "bi", ["W(phl,annm)"], [12.], [0], [0])
-end
 
-@testset "Generation of w_g from variables_optim" begin
-    w_names =  ["W(phl,annm)",
-        "W(phl,obi)",
-        "W(phl,east)",
-        "W(phl,tbi)",
-        "W(phl,fbi)",
-        "W(phl,mmbi)",
-        "W(annm,obi)",
-        "W(annm,east)",
-        "W(annm,tbi)",
-        "W(annm,fbi)",
-        "W(annm,mmbi)",
-        "W(obi,east)",
-        "W(obi,tbi)",
-        "W(obi,fbi)",
-        "W(obi,mmbi)",
-        "W(east,tbi)",
-        "W(east,fbi)",
-        "W(east,mmbi)",
-        "W(tbi,fbi)",
-        "W(tbi,mmbi)",
-        "W(fbi,mmbi)"]
+    # (3) test the variable_optimised() function (used within JOB constructor)
+    initial = [1 1 3;
+               1 1 4;
+               1 2 5]
 
-    w_initial_values = [12  0  0 ;
-                4  0  0 ;
-                10  0.1  3 ;
-                30  0  0 ;
-                8  0.2  4 ;
-                9  0  0 ;
-                8  0  0 ;
-                15  0  0 ;
-                32  0  0 ;
-                13.6  0  0 ;
-                6.3  0  0 ;
-                7  0  0 ;
-                24  0  0 ;
-                5.6  0  0 ;
-                8.1  0  0 ;
-                40  0  0 ;
-                1  0  0 ;
-                13  0  0 ;
-                40  0  0 ;
-                30  0  0 ;
-                11.6  0  0]
+    lower_bounds = [1 1 1;
+                    1 1 1;
+                    1 1 1]
 
-    w_lower_bounds =   [0. 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0]
+    upper_bounds = [1 1 2;
+                    1 1 2;
+                    2 2 2]
 
-    w_upper_bounds =   [0. 0 0;
-                0 0 0;
-                60 1 20;
-                0 0 0;
-                60 1 20;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0;
-                0 0 0]
+    names = ["A", "B", "C"]
 
-    job = JOB("mp", "bi", w_names, w_initial_values, w_lower_bounds, w_upper_bounds)
+    var_opti, var_opti_bounds, var_opti_names,  var_opti_coord, n = variable_optimised(initial, lower_bounds, upper_bounds, names)
 
+    @test var_opti == [1, 2, 3, 4, 5]
 
-    job_check_consistency(job)
+    # change the initial values at the coordinates
+    initial[var_opti_coord] .= [10, 20, 30, 40, 50]
 
-    variables_optim, variables_optim_bounds, variables_optim_coordinates = get_variables_optim(job)
+    init_mod = [1  1  30
+                1  1  40
+                10 20 50]
 
-    w_g = calculate_w_g(variables_optim,variables_optim_coordinates, 8, 700, job)
-
-    println(w_g[3])
-    println(w_g[5])
-
-    @test w_g[3] ≈ 10 + 0.1 * (700 + 273.15) + 3 * 8
-    @test w_g[5] ≈ 8 + 0.2 * (700 + 273.15) + 4 * 8
-
+    @test initial == init_mod
 end
 end

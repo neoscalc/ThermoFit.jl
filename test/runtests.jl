@@ -69,7 +69,8 @@ using Test
     algorithm = "NelderMead";
     normalization = true;
 
-    job_NelderMead = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+    job_NelderMead = JOB(thermodynamic_database, solid_solution,
+                         w_names=w_names, w_initial_values=w_initial_values, w_lower_bounds=w_lower_bounds, w_upper_bounds=w_upper_bounds,
                          algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
                          number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
     print_job(job_NelderMead)
@@ -78,7 +79,8 @@ using Test
     algorithm = "ParticleSwarm";
     normalization = false;
 
-    job_ParticleSwarm = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+    job_ParticleSwarm = JOB(thermodynamic_database, solid_solution,
+                            w_names=w_names, w_initial_values=w_initial_values, w_lower_bounds=w_lower_bounds, w_upper_bounds=w_upper_bounds,
                             algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
                             number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
     print_job(job_ParticleSwarm)
@@ -120,7 +122,7 @@ end
     splx_data   = MAGEMin_db.splx_data[id]
 
     # use unaltered w_g = W_H from the mp database
-    w_g = w_initial_values = [12, 4, 10, 30, 8, 9, 8, 15, 32, 13.6, 6.3, 7, 24, 5.6, 8.1, 40, 1, 13, 40, 30, 11.6]
+    w_g = w_initial_values = [12., 4, 10, 30, 8, 9, 8, 15, 32, 13.6, 6.3, 7, 24, 5.6, 8.1, 40, 1, 13, 40, 30, 11.6]
     
     # set up constraint
     # forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
@@ -141,7 +143,7 @@ end
 
     w_names = ["A", "B", "C"]
 
-    job = JOB("mp", "bi", w_names, w_initial, w_lower_bounds, w_upper_bounds)
+    job = JOB("mp", "bi", w_names=w_names, w_initial_values=w_initial, w_lower_bounds=w_lower_bounds, w_upper_bounds=w_upper_bounds)
 
     margules_optim = [10, 20, 30, 40, 50]
     P = 2.
@@ -163,13 +165,34 @@ end
 @testset "inversion.jl" begin
     # test the JOB struct and its constructor function(s)
     # (1) test the JOB struct with only the required arguments
-    job = JOB("mp", "bi", ["W(phl,annm)"], [12 0 0], [0 0 0], [0 0 0])
-    @test typeof(job) == JOB{String, Vector{String}, Matrix{Int64}, Int64, Bool}
+    job = JOB("mp", "bi", w_names=["W(phl,annm)"], w_initial_values=[12. 0 0], w_lower_bounds=[0. 0 0], w_upper_bounds=[15. 0 0])
+    @test typeof(job) == JOB{String, Vector{String}, Matrix{Float64}, Int64, Bool, Nothing}
 
     # (2) test typeerror when passing wrong type to JOB constructor
-    @test_throws MethodError JOB("mp", "bi", ["W(phl,annm)"], [12. 0 0], [0 0 0], [0 0 0])
+    @test_throws MethodError JOB("mp", "bi", w_names=["W(phl,annm)"], w_initial_values=[12. 0 0], w_lower_bounds=[0 0 0], w_upper_bounds=[0 0 0])
 
-    # (3) test the variable_optimised() function (used within JOB constructor)
+    # (3) test the JOB constructor function for different cases of variables to optimise:
+    #        - (I) optimise margules
+    #        - (II) optimise g0 corrections
+    #        - (III) optimise both margules and g0 corrections
+
+    job_I = JOB("mp", "bi", w_names=["W(phl,annm)", "W(phl,obi)"],
+                w_initial_values=[12. 0 0; 4  0  0], w_lower_bounds=[0. 0 0; 0 0 0], w_upper_bounds=[15. 0 0; 5 0 0])
+    @test job_I.var_optim == [12.0, 4.0]
+    @test job_I.var_optim_bounds == [0.0 15.0; 0.0 5.0]
+
+    job_II = JOB("mp", "bi", g0_corr_endmembers = ["annm", "obi"],
+                 g0_corr_initial_values = [2.0, 0.05], g0_corr_lower_bounds = [0.0, 0.0], g0_corr_upper_bounds = [5.0, 5.0])
+    @test job_II.var_optim == [2.0, 0.05]
+    @test job_II.var_optim_bounds == [0.0 5.0; 0.0 5.0]
+
+    job_III = JOB("mp", "bi", w_names=["W(phl,annm)", "W(phl,obi)"],
+                  w_initial_values=[12. 0 0; 4  0  0], w_lower_bounds=[0. 0 0; 0 0 0], w_upper_bounds=[15. 0 0; 5 0 0],
+                  g0_corr_endmembers = ["annm", "obi"], g0_corr_initial_values = [2.0, 0.05], g0_corr_lower_bounds = [0.0, 0.0], g0_corr_upper_bounds = [5.0, 5.0])
+    @test job_III.var_optim == [12.0, 4.0, 2.0, 0.05]
+    @test job_III.var_optim_bounds == [0.0 15.0; 0.0 5.0; 0.0 5.0; 0.0 5.0]
+
+    # (4) test the variable_optimised() function (used within JOB constructor)
     initial = [1 1 3;
                1 1 4;
                1 2 5]

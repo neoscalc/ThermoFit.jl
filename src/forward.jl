@@ -25,7 +25,7 @@ Performs a forward calculation (Gibbs energy minimisation) using MAGEMin.
 ## Returns
 - `out`: The output containing the results of the calculation.
 """
-function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+function forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
     pressure_kbar = constraint.pressure_GPa * 10
     temperature_C = constraint.temperature_C
     bulk = constraint.bulk
@@ -39,7 +39,21 @@ function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, spl
 
     ss_idx = findfirst(x->x==phase, ss_names)
 
-    unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
+    #//TODO - TEST THIS!!!
+    if !isnothing(w_g)
+        unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
+    end
+
+    if !isnothing(g0_corr_vec) && !isnothing(g0_corr_em)
+        ss_gbase_mod = copy(ss_gbase)
+        for (em, g0_corr) in zip(g0_corr_em, g0_corr_vec)
+            em_idx = findfirst(ss_emlist .== em)
+            ss_gbase_mod[em_idx] += g0_corr
+        end
+
+        unsafe_copyto!(ss_struct[ss_idx].gbase, pointer(ss_gbase_mod), ss_struct[ss_idx].n_em)
+    end
+        
 
     out = pwm_run(gv, z_b, DB, splx_data)
     return out

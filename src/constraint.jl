@@ -41,13 +41,3 @@ function read_constraints_from_yml(path::AbstractString)
     end
     return constraints_vec
 end
-
-
-
-# using MAGEMin_C
-# MAGEMin_db = Initialize_MAGEMin("mp")
-# P,T     = 4.0, 550.0
-# BULK_FPWMP = [64.13; 0.91; 19.63; 6.85; 0.08; 2.41; 0.65; 1.38; 3.95; 40.]
-# BULK_OXIDES = ["SiO2"; "TiO2"; "Al2O3"; "FeO"; "MnO"; "MgO"; "CaO"; "Na2O"; "K2O"; "H2O"]
-# sys_in  = "wt"
-# out     = single_point_minimization(P, T, MAGEMin_db, X=BULK_FPWMP, Xoxides=BULK_OXIDES, sys_in=sys_in)

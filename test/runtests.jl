@@ -1,9 +1,6 @@
 using ThermoFit
 using Test
 
-CST = global_constants()
-PARAMS = global_parameters()
-
 @testset "ThermoFit" begin
 
 @testset "full_inversion_test" begin

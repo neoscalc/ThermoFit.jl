@@ -1,3 +1,17 @@
+"""
+    inversion.jl
+
+This module contains functions for the inversion of thermodynamic parameters using MAGEMin.
+
+## Structures
+- `JOB`
+## Functions
+- `variable_optimised()`
+- `print_job()`
+- `inversion()`
+- `objective_function()`
+"""
+
 
 """
     JOB(thermodynamic_database, phase_to_be_optimised, w_names, w_initial_values, w_lower_bounds, w_upper_bounds;
@@ -56,6 +70,20 @@ struct JOB{T1, T2, T3, T4, T5}
             @error "Error: Algorithm not recognised"
         end
 
+        # Check if the thermodynmaic parameters to be optimised are consistent
+        # (1) Margules parameters
+        nb_wg = length(w_names)
+        if isequal(size(w_initial_values), (nb_wg, 3)) == false
+            @error("Error: w_initial_values must be a matrix of size (nb_wg, 3)")
+        end
+        if isequal(size(w_lower_bounds), (nb_wg, 3)) == false
+            @error("Error: w_lower_bounds must be a matrix of size (nb_wg, 3)")
+        end
+        if isequal(size(w_upper_bounds), (nb_wg, 3)) == false
+            @error("Error: w_upper_bounds must be a matrix of size (nb_wg, 3)")
+        end
+
+
         # CREATE INTERNAL VARIABLES
         # (1) Margules parameters
         margules_optim, margules_optim_bounds, margules_optim_names, margules_optim_coord, margules_n = variable_optimised(w_initial_values, w_lower_bounds, w_upper_bounds, w_names)
@@ -70,16 +98,27 @@ struct JOB{T1, T2, T3, T4, T5}
         var_optim_norm      = margules_optim .+ 0.1            # use the initial values as normalization factor + "small offset"
         var_optim_type      = margules_optim_type
 
-        new{T1, T2, T3, T4, T5}(thermodynamic_database, phase_to_be_optimised, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
-                                var_optim, var_optim_bounds, var_optim_names, var_optim_norm, var_optim_type, margules_optim_coord,
-                                algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds)
+        new{T1, T2, T3, T4, T5}(thermodynamic_database,
+                                phase_to_be_optimised,
+                                w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
+                                var_optim,
+                                var_optim_bounds,
+                                var_optim_names,
+                                var_optim_norm,
+                                var_optim_type,
+                                margules_optim_coord,
+                                algorithm,
+                                number_iterations_max,
+                                normalization,
+                                number_constraints_max,
+                                max_time_seconds)
     end
 end
 
 
 """
     variable_optimised(lower_bounds::AbstractArray, upper_bounds::AbstractArray)
-Helper func used in constructor of JOB to identify which variables are allowed to be optimised.
+Auxillary func used in constructor of JOB to identify which variables are allowed to be optimised.
 """
 function variable_optimised(variable::AbstractArray, lower_bounds::AbstractArray, upper_bounds::AbstractArray, variable_names::AbstractArray)
     # Variable to optimise are defined by differing lower and upper bounds
@@ -97,32 +136,22 @@ function variable_optimised(variable::AbstractArray, lower_bounds::AbstractArray
 end
 
 
-function job_check_consistency(job)
-    println("\n        *** CHECKING job CONSISTENCY ***\n")
-    nb_wg = length(job.w_names)
-    if isequal(size(job.w_initial_values), (nb_wg, 3)) == false
-        error("w_initial_values must be a matrix of size (nb_wg, 3)")
-    else
-        println(" - w_initial_values (size):        ok")
-    end
-    if isequal(size(job.w_lower_bounds), (nb_wg, 3)) == false
-        error("w_lower_bounds must be a matrix of size (nb_wg, 3)")
-    else
-        println(" - w_lower_bounds (size):          ok")
-    end
-    if isequal(size(job.w_upper_bounds), (nb_wg, 3)) == false
-        error("w_upper_bounds must be a matrix of size (nb_wg, 3)")
-    else
-        println(" - w_upper_bounds (size):          ok")
-    end
-    
+"""
+    print_job(job)
+Prints the job parameters.
+"""
+function print_job(job)
     println("   -----------------------------------------------------")
     println(" - Variables to be optimized [name type start min max]:")
     type_w = ["WH","WS","WV"]
-    for i = 1:nb_wg
+    for i = 1:length(job.w_names)
         for j = 1:3
             if job.w_upper_bounds[i,j] > job.w_lower_bounds[i,j]
-                println("    ", job.w_names[i], "  \t", type_w[j], "\t ",job. w_initial_values[i,j], "\t ", job.w_lower_bounds[i,j], " \t ", job.w_upper_bounds[i,j]) 
+                println("    ", job.w_names[i],
+                        "  \t", type_w[j],
+                        "\t ",job. w_initial_values[i,j],
+                        "\t ", job.w_lower_bounds[i,j],
+                        " \t ", job.w_upper_bounds[i,j]) 
             end
         end
     end
@@ -134,7 +163,7 @@ function job_check_consistency(job)
 end
 
 
-function inversion_run(job, constraints)
+function inversion(job, constraints)
     # Set parameters for the inversion
     if job.normalization == true
         x0 = job.var_optim ./ job.var_optim_norm

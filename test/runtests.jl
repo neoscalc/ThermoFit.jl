@@ -72,7 +72,7 @@ using Test
     job_NelderMead = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
                          algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
                          number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
-    job_check_consistency(job_NelderMead)
+    print_job(job_NelderMead)
 
     # 2. Particle Swarm (without normalization)
     algorithm = "ParticleSwarm";
@@ -81,11 +81,11 @@ using Test
     job_ParticleSwarm = JOB(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds,
                             algorithm=algorithm, number_iterations_max=number_iterations_max, normalization=normalization,
                             number_constraints_max=number_constraints_max, max_time_seconds=max_time_seconds);
-    job_check_consistency(job_ParticleSwarm)
+    print_job(job_ParticleSwarm)
 
     # RUN test inversions
-    res_NelderMead, norm_NelderMead = inversion_run(job_NelderMead, constraints)
-    res_ParticleSwarm, norm_ParticleSwarm = inversion_run(job_ParticleSwarm, constraints)
+    res_NelderMead, norm_NelderMead = inversion(job_NelderMead, constraints)
+    res_ParticleSwarm, norm_ParticleSwarm = inversion(job_ParticleSwarm, constraints)
 
     # check inverterted Margules parameters
     @test res_NelderMead.minimizer .* norm_NelderMead ≈ [12.]             atol=1
@@ -163,11 +163,11 @@ end
 @testset "inversion.jl" begin
     # test the JOB struct and its constructor function(s)
     # (1) test the JOB struct with only the required arguments
-    job = JOB("mp", "bi", ["W(phl,annm)"], [12], [0], [0])
-    @test typeof(job) == JOB{String, Vector{String}, Vector{Int64}, Int64, Bool}
+    job = JOB("mp", "bi", ["W(phl,annm)"], [12 0 0], [0 0 0], [0 0 0])
+    @test typeof(job) == JOB{String, Vector{String}, Matrix{Int64}, Int64, Bool}
 
     # (2) test typeerror when passing wrong type to JOB constructor
-    @test_throws MethodError JOB("mp", "bi", ["W(phl,annm)"], [12.], [0], [0])
+    @test_throws MethodError JOB("mp", "bi", ["W(phl,annm)"], [12. 0 0], [0 0 0], [0 0 0])
 
     # (3) test the variable_optimised() function (used within JOB constructor)
     initial = [1 1 3;

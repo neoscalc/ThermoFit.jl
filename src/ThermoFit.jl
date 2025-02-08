@@ -18,7 +18,7 @@ include("resplot.jl")
 export bingo_calculate_qcmp_phase, bingo_generate_fake_uncertainties
 export Constraint, read_constraints_from_yml
 export forward_call, calculate_w_g
-export JOB, job_check_consistency, variable_optimised, inversion_run, objective_function
+export JOB, print_job, variable_optimised, inversion, objective_function
 export resplot, pixelmap_calc
 
 end

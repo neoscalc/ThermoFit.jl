@@ -112,6 +112,21 @@ end
 end
 
 @testset "forward.jl" begin
+    phase = "bi"
+    database = "mp"
+
+    # set up the constraint
+    temperature_C = 580
+    pressure_GPa = 0.45
+    bulk = [64.13, 0.91, 19.63, 6.85, 0.08, 2.41, 0.65, 1.38, 3.95, 40.0]
+    bulk_oxides = ["SiO2", "TiO2", "Al2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "H2O"]
+    sys_in = "wt%"
+    assemblage = ["st", "bi", "mu", "fsp", "ilm", "q", "H2O"]
+    mineral_composition_apfu = Dict("bi" => [2.720008886150718, 1.559982227698564, 0.0, 0.89014494411893, 1.732872689303359, 1.0, 0.0, 0.08652624797247646, 12.0, 0.01046500475595296, 1.8269475040550471])
+    mineral_elements = ["Si", "Al", "Ca", "Mg", "Fe", "K", "Na", "Ti", "O", "Mn", "H"]
+
+    constraint = Constraint(pressure_GPa, temperature_C, bulk, bulk_oxides, sys_in, assemblage, mineral_composition_apfu, mineral_elements)
+
     MAGEMin_db  = Initialize_MAGEMin("mp", verbose=false)
 
     # identify thread and acess the MAGEMin_db of the thread
@@ -122,11 +137,36 @@ end
     splx_data   = MAGEMin_db.splx_data[id]
 
     # use unaltered w_g = W_H from the mp database
-    w_g = w_initial_values = [12., 4, 10, 30, 8, 9, 8, 15, 32, 13.6, 6.3, 7, 24, 5.6, 8.1, 40, 1, 13, 40, 30, 11.6]
-    
-    # set up constraint
-    # forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+    w_initial_values = [12., 4, 10, 30, 8, 9, 8, 15, 32, 13.6, 6.3, 7, 24, 5.6, 8.1, 40, 1, 13, 40, 30, 11.6]
+    w_mod = [20., 4, 10, 30, 8, 9, 8, 15, 32, 13.6, 6.3, 7, 24, 5.6, 8.1, 40, 1, 13, 40, 30, 11.6]
+    g0_corr_endmembers = ["phl"]
+    g0_corr_initial_values = [0.0]
+    g0_corr_mod = [2.0]
 
+    # test the forward_call() function with no w_g and g0_corr
+    out = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
+    @test out.ph == constraint.assemblage
+    @test out.SS_vec[findfirst(out.ph .== "bi")].Comp_apfu == constraint.mineral_composition_apfu["bi"]
+
+    # test the forward_call() function with unaltered w_g and g0_corr
+    out = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = w_initial_values, g0_corr_vec = g0_corr_initial_values, g0_corr_em = g0_corr_endmembers)
+    @test out.ph == constraint.assemblage
+    @test out.SS_vec[findfirst(out.ph .== "bi")].Comp_apfu == constraint.mineral_composition_apfu["bi"]
+
+    # test the forward_call() function with altered w_g
+    out_w_mod = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = w_mod)
+    @test out_w_mod.ph == ["mu", "bi", "st", "fsp", "g", "ilm", "q", "H2O"]
+    @test out_w_mod.SS_vec[findfirst(out_w_mod.ph .== "bi")].Comp_apfu == [2.703201966718807, 1.5935960665623852, 0.0, 0.8769929425165847, 1.7275929039130509, 1.0000000000000002, 0.0, 0.08873358434595208, 12.0, 0.00988253594321993, 1.822532831308096]
+
+    # test the forward_call() function with altered g0_corr
+    out_g0_mod = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; g0_corr_vec = g0_corr_mod, g0_corr_em = g0_corr_endmembers)
+    @test out_g0_mod.ph == ["fsp", "bi", "mu", "st", "ilm", "g", "q", "H2O"]
+    @test out_g0_mod.SS_vec[findfirst(out_g0_mod.ph .== "bi")].Comp_apfu == [2.711326941147552, 1.5773461177048962, 0.0, 0.8795051695973085, 1.7337723613120772, 1.0, 0.0, 0.08775150164407976, 12.0, 0.010297908594086575, 1.8244969967118405]
+
+    #test the forward_call() function with altered w_g and g0_corr
+    out_w_g0_mod = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = w_mod, g0_corr_vec = g0_corr_mod, g0_corr_em = g0_corr_endmembers)
+    @test out_w_g0_mod.ph == ["fsp", "mu", "st", "bi", "g", "ilm", "q", "H2O"]
+    @test out_w_g0_mod.SS_vec[findfirst(out_w_g0_mod.ph .== "bi")].Comp_apfu == [2.6981048656876174, 1.6037902686247656, 0.0, 0.8692846574817923, 1.7295717750076536, 1.0, 0.0, 0.0894953787332389, 12.0, 0.00975305446493273, 1.8210092425335223]
 
     # test the calculate_w_g() function
     w_initial = [1 1 3;

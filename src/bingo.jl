@@ -1,7 +1,3 @@
-# this should be removed in the future...
-PARAMS = global_parameters()
-CST = global_constants()
-
 function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Calculate the quality factor for each given component of the selected phase
     # mod_comp: model composition in apfu
@@ -13,15 +9,19 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     #
     # Reference: Duesterhoeft & Lanari (2020) Journal of Metamorphic Geology, 38, 527-551.
 
-    if PARAMS.debug
+    BINGO_FAC_1::Float64 = 1.00
+    BINGO_FAC_2::Float64 = 5.00
+    PARAMS_debug::Bool = false
+
+    if PARAMS_debug
         println("\n--> bingo_calculate_qcmp_phase")
     end
 
     # Set parameters
-    fac_1 = CST.bingo_fac_1
-    fac_2 = CST.bingo_fac_2
+    fac_1 = BINGO_FAC_1
+    fac_2 = BINGO_FAC_2
 
-    if PARAMS.debug
+    if PARAMS_debug
         println("fac_1: ", fac_1)
         println("fac_2: ", fac_2)
     end
@@ -29,7 +29,7 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Replace obs_unc values smaller than 0.01 with 0.01
     obs_unc[obs_unc .< 0.01] .= 0.01
 
-    if PARAMS.debug
+    if PARAMS_debug
         println("mod_comp: ", mod_comp)
         println("obs_comp: ", obs_comp)
         println("obs_unc(changed): ", obs_unc)
@@ -38,7 +38,7 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     diff_abs = abs.(mod_comp .- obs_comp)
     diff_2 = diff_abs .- obs_unc/fac_1
 
-    if PARAMS.debug
+    if PARAMS_debug
         println("diff_abs: ", diff_abs)
         println("diff_2: ", diff_2)
     end
@@ -54,13 +54,13 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     # Calculate Q_cpm for each element
     qcmp_small = (1 .- diff_2 ./ (fac_2 .* obs_unc)) .^ (mod_comp .+ 1)
 
-    if PARAMS.debug
+    if PARAMS_debug
         println("qcmp_small: ", qcmp_small)
     end
 
     qcmp_phase = sum(qcmp_small)/length(qcmp_small) * 100
 
-    if PARAMS.debug
+    if PARAMS_debug
         println("qcmp_phase: ", qcmp_phase)
     end
 

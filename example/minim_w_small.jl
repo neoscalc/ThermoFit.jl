@@ -20,11 +20,7 @@ cd(@__DIR__)
 # 2. Import ThermoFit.jl
 using ThermoFit
 
-# 3. Initialise constants and parameters
-CST = global_constants();
-PARAMS = global_parameters();
-
-# 4. Initialise the data for the inversion
+# 3. Initialise the data for the inversion
 thermodynamic_database = "mp";
 solid_solution = "bi";
 
@@ -79,18 +75,32 @@ w_lower_bounds[1,1] = -100;
 w_upper_bounds = copy(w_initial_values)
 w_upper_bounds[1,1] = 100;
 
-# Inversion settings
-algorithm = "NelderMead";                # use "NelderMead" (recommended) or "ParticleSwarm"
-number_iterations_max = 1000;            # maximum number of iterations
-normalization = true;                    # normalize the variables to optimise (Margules)
-number_constraints_max = 40;             # maximum number of constraints to use for the inversion
-max_time_seconds = 60;                   # maximum time in seconds for the inversion
+# use a G0 correction for the endmember annm of biotite
+# Increase the G0 of annm by 2 kJ/mol, reversing the ann -> annm G0 correction
+g0_corr_endmembers      = ["annm"]
+g0_corr_initial_values  = [2.0]
+g0_corr_lower_bounds    = [-3.]
+g0_corr_upper_bounds    = [3.0]
 
-# 5. Create the JOB structure
-JOB = job(thermodynamic_database, solid_solution, w_names, w_initial_values, w_lower_bounds, w_upper_bounds, algorithm, number_iterations_max, normalization, number_constraints_max, max_time_seconds);
+
+# 4. Create the JOB structure
+job = JOB(thermodynamic_database, solid_solution,
+          w_names                                   = w_names,
+          w_initial_values                          = w_initial_values,
+          w_lower_bounds                            = w_lower_bounds,
+          w_upper_bounds                            = w_upper_bounds,
+          g0_corr_endmembers                        = g0_corr_endmembers,
+          g0_corr_initial_values                    = g0_corr_initial_values,
+          g0_corr_lower_bounds                      = g0_corr_lower_bounds,
+          g0_corr_upper_bounds                      = g0_corr_upper_bounds,
+          algorithm                                 = "NelderMead",             # use "NelderMead" (recommended) or "ParticleSwarm"
+          number_iterations_max                     = 1000,                     # maximum number of iterations
+          normalization                             = true,                     # normalize the variables to optimise
+          number_constraints_max                    = 40,                       # maximum number of constraints to use for the inversion
+          max_time_seconds                          = 120);                     # maximum time in seconds for the inversion
 
 # 6. Check JOB
-job_check_consistency(JOB)
+print_job(job)
 
 # 7. Import the constraints
 constraints = read_constraints_from_yml("data/gen_data_FPWMP_biotites.yml")
@@ -99,12 +109,12 @@ constraints = read_constraints_from_yml("data/gen_data_FPWMP_biotites.yml")
 constraints = filter(c -> in("bi",c.assemblage), constraints)
 
 # Call the inversion subroutine
-res, norm = inversion_run(JOB, constraints)
+res, norm = inversion(job, constraints)
 
 # println(JOB.w_initial_values) # Note that we update JOB.w_initial_values in this version
-job_check_consistency(JOB)
+print(job)
 println("Margules parameters:")
-if JOB.normalization == true
+if job.normalization == true
     println(res.minimizer .* norm)
 else
     println(res.minimizer)

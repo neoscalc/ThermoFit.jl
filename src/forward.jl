@@ -10,7 +10,7 @@ This modules contains functions handling a forward pass trough MAGEMin's G-minim
 
 
 """
-    forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+    forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
 
 Performs a forward calculation (Gibbs energy minimisation) using MAGEMin.
 
@@ -18,14 +18,16 @@ Performs a forward calculation (Gibbs energy minimisation) using MAGEMin.
 - `phase`: The name of the phase (solid solution) whichs Margules are changed.
 - `database`: The database containing the thermodynamic data.
 - `constraint`: The constraint object specifying the pressure, temperature, bulk composition, bulk oxides list, mineral composition and element list for the mineral composition.
-- `w_g`: A vector of Margules (W-G) which is used for minimisation in the forward call.
 - `sys_in`: String specifying the input format to MAGEMin ["mol"/"wt"].
 - `gv`, `z_b`, `DB`, `splx_data`: The MAGEMin variables with the pointers.
+- `w_g`: A vector of Margules (W-G) which is used for minimisation in the forward call.
+- `g0_corr_vec`: A vector of corrections to the G0 values of the endmembers.
+- `g0_corr_em`: A vector of endmembers corresponding to the corrections.
 
 ## Returns
 - `out`: The output containing the results of the calculation.
 """
-function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+function forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
     pressure_kbar = constraint.pressure_GPa * 10
     temperature_C = constraint.temperature_C
     bulk = constraint.bulk
@@ -39,7 +41,22 @@ function forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, spl
 
     ss_idx = findfirst(x->x==phase, ss_names)
 
-    unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
+    if !isnothing(w_g)
+        unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
+    end
+
+    if !isnothing(g0_corr_vec) && !isnothing(g0_corr_em)
+        ss_gbase = unsafe_wrap(Vector{Float64}, ss_struct[ss_idx].gbase, ss_struct[ss_idx].n_em)
+        ss_emlist = unsafe_wrap(Vector{Ptr{Int8}}, ss_struct[ss_idx].EM_list, ss_struct[ss_idx].n_em)
+        ss_emlist = unsafe_string.(ss_emlist)
+        ss_gbase_mod = copy(ss_gbase)
+        for (em, g0_corr) in zip(g0_corr_em, g0_corr_vec)
+            em_idx = findfirst(ss_emlist .== em)
+            ss_gbase_mod[em_idx] += g0_corr
+        end
+        unsafe_copyto!(ss_struct[ss_idx].gbase, pointer(ss_gbase_mod), ss_struct[ss_idx].n_em)
+    end
+        
 
     out = pwm_run(gv, z_b, DB, splx_data)
     return out

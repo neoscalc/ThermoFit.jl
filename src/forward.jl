@@ -10,7 +10,7 @@ This modules contains functions handling a forward pass trough MAGEMin's G-minim
 
 
 """
-    forward_call(phase, database, constraint, w_g, sys_in, gv, z_b, DB, splx_data)
+    forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
 
 Performs a forward calculation (Gibbs energy minimisation) using MAGEMin.
 
@@ -18,9 +18,11 @@ Performs a forward calculation (Gibbs energy minimisation) using MAGEMin.
 - `phase`: The name of the phase (solid solution) whichs Margules are changed.
 - `database`: The database containing the thermodynamic data.
 - `constraint`: The constraint object specifying the pressure, temperature, bulk composition, bulk oxides list, mineral composition and element list for the mineral composition.
-- `w_g`: A vector of Margules (W-G) which is used for minimisation in the forward call.
 - `sys_in`: String specifying the input format to MAGEMin ["mol"/"wt"].
 - `gv`, `z_b`, `DB`, `splx_data`: The MAGEMin variables with the pointers.
+- `w_g`: A vector of Margules (W-G) which is used for minimisation in the forward call.
+- `g0_corr_vec`: A vector of corrections to the G0 values of the endmembers.
+- `g0_corr_em`: A vector of endmembers corresponding to the corrections.
 
 ## Returns
 - `out`: The output containing the results of the calculation.

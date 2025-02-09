@@ -41,7 +41,6 @@ function forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_dat
 
     ss_idx = findfirst(x->x==phase, ss_names)
 
-    #//TODO - TEST THIS!!!
     if !isnothing(w_g)
         unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
     end

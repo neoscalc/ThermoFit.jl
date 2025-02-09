@@ -47,12 +47,14 @@ function forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_dat
     end
 
     if !isnothing(g0_corr_vec) && !isnothing(g0_corr_em)
+        ss_gbase = unsafe_wrap(Vector{Float64}, ss_struct[ss_idx].gbase, ss_struct[ss_idx].n_em)
+        ss_emlist = unsafe_wrap(Vector{Ptr{Int8}}, ss_struct[ss_idx].EM_list, ss_struct[ss_idx].n_em)
+        ss_emlist = unsafe_string.(ss_emlist)
         ss_gbase_mod = copy(ss_gbase)
         for (em, g0_corr) in zip(g0_corr_em, g0_corr_vec)
             em_idx = findfirst(ss_emlist .== em)
             ss_gbase_mod[em_idx] += g0_corr
         end
-
         unsafe_copyto!(ss_struct[ss_idx].gbase, pointer(ss_gbase_mod), ss_struct[ss_idx].n_em)
     end
         

@@ -39,7 +39,7 @@ struct JOB{T1, T2, T3, T4, T5, T6}
     var_optim_bounds    ::Matrix{Float64}                       # (n x 2; columns: lower_bounds, upper_bounds)
     var_optim_names     ::Vector{String}                        # Names of the variables
     var_optim_norm      ::Vector{Float64}                       # Normalization factor
-    var_optim_type      ::Vector{String}                        # Type of the variable, e.g., "WH", "WS", "WV", "DQF"... -> important for Margules!
+    var_optim_type      ::Vector{String}                        # Type of the variable, e.g., "WH", "WS", "WV", "G0_corr"... -> important for Margules!
     # For each type of variable to be optimised,
     # the coordinates are stored in a seperate vector.
     margules_optim_coord ::Union{Vector{CartesianIndex{2}}, Nothing}       # Coordinates of the Margules optimised, Vector{CartesianIndices}
@@ -336,10 +336,10 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db, sy
             w_g = nothing
         end
 
-        # Calculate DQFs
-        idx_dqf    = findall(job.var_optim_type .== "DQF")
-        if !isempty(idx_dqf)
-            g0_corr = variables_optim_local[idx_dqf]
+        # Calculate G0 corrections
+        idx_g0_coor    = findall(job.var_optim_type .== "G0_corr")
+        if !isempty(idx_g0_coor)
+            g0_corr = variables_optim_local[idx_g0_coor]
             g0_corr_endmembers = job.g0_corr_endmembers
         else
             g0_corr = nothing

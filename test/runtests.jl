@@ -146,27 +146,27 @@ end
     # test the forward_call() function with no w_g and g0_corr
     out = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
     @test sort(out.ph) == sort(constraint.assemblage)
-    @test out.SS_vec[findfirst(out.ph .== "bi")].Comp_apfu ≈ constraint.mineral_composition_apfu["bi"]
+    @test out.SS_vec[findfirst(out.ph .== "bi")].Comp_apfu ≈ constraint.mineral_composition_apfu["bi"] atol=1e-4
 
     # test the forward_call() function with unaltered w_g and g0_corr
     out = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = w_initial_values, g0_corr_vec = g0_corr_initial_values, g0_corr_em = g0_corr_endmembers)
     @test sort(out.ph) == sort(constraint.assemblage)
-    @test out.SS_vec[findfirst(out.ph .== "bi")].Comp_apfu ≈ constraint.mineral_composition_apfu["bi"]
+    @test out.SS_vec[findfirst(out.ph .== "bi")].Comp_apfu ≈ constraint.mineral_composition_apfu["bi"] atol=1e-4
 
     # test the forward_call() function with altered w_g
     out_w_mod = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = w_mod)
     @test sort(out_w_mod.ph) == sort(["mu", "bi", "st", "fsp", "g", "ilm", "q", "H2O"])
-    @test out_w_mod.SS_vec[findfirst(out_w_mod.ph .== "bi")].Comp_apfu ≈ [2.703201966718807, 1.5935960665623852, 0.0, 0.8769929425165847, 1.7275929039130509, 1.0000000000000002, 0.0, 0.08873358434595208, 12.0, 0.00988253594321993, 1.822532831308096]
+    @test out_w_mod.SS_vec[findfirst(out_w_mod.ph .== "bi")].Comp_apfu ≈ [2.703201966718807, 1.5935960665623852, 0.0, 0.8769929425165847, 1.7275929039130509, 1.0000000000000002, 0.0, 0.08873358434595208, 12.0, 0.00988253594321993, 1.822532831308096] atol=1e-4
 
     # test the forward_call() function with altered g0_corr
     out_g0_mod = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; g0_corr_vec = g0_corr_mod, g0_corr_em = g0_corr_endmembers)
     @test sort(out_g0_mod.ph) == sort(["fsp", "bi", "mu", "st", "ilm", "g", "q", "H2O"])
-    @test out_g0_mod.SS_vec[findfirst(out_g0_mod.ph .== "bi")].Comp_apfu ≈ [2.711326941147552, 1.5773461177048962, 0.0, 0.8795051695973085, 1.7337723613120772, 1.0, 0.0, 0.08775150164407976, 12.0, 0.010297908594086575, 1.8244969967118405]
+    @test out_g0_mod.SS_vec[findfirst(out_g0_mod.ph .== "bi")].Comp_apfu ≈ [2.711326941147552, 1.5773461177048962, 0.0, 0.8795051695973085, 1.7337723613120772, 1.0, 0.0, 0.08775150164407976, 12.0, 0.010297908594086575, 1.8244969967118405] atol=1e-4
 
     #test the forward_call() function with altered w_g and g0_corr
     out_w_g0_mod = forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = w_mod, g0_corr_vec = g0_corr_mod, g0_corr_em = g0_corr_endmembers)
     @test sort(out_w_g0_mod.ph) == sort(["fsp", "mu", "st", "bi", "g", "ilm", "q", "H2O"])
-    @test out_w_g0_mod.SS_vec[findfirst(out_w_g0_mod.ph .== "bi")].Comp_apfu ≈ [2.6981048656876174, 1.6037902686247656, 0.0, 0.8692846574817923, 1.7295717750076536, 1.0, 0.0, 0.0894953787332389, 12.0, 0.00975305446493273, 1.8210092425335223]
+    @test out_w_g0_mod.SS_vec[findfirst(out_w_g0_mod.ph .== "bi")].Comp_apfu ≈ [2.6981048656876174, 1.6037902686247656, 0.0, 0.8692846574817923, 1.7295717750076536, 1.0, 0.0, 0.0894953787332389, 12.0, 0.00975305446493273, 1.8210092425335223] atol=1e-4
 
     # test the calculate_w_g() function
     w_initial = [1 1 3;

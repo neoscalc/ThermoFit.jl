@@ -4,7 +4,10 @@
 #                    ------------------------------------------------
 #
 # This file shows an example of how to use the ThermoFit package to adjust Margules parameters.
-# Description will be added in the future. For now, please refer to the documentation.
+# 
+# As a proof of concept the example presented here demonstrates how the thermodynamic parameters of the biotite solid solution 
+# defined in White et al. (2014) can be retireved from altered parameeters using inversion modelling with ThermoFit.
+# As constraints 49 P-T-X + biotite composition data points simulated with MAGEMin using the White et al. 2014 solution model are used.
 #
 # Philip Hartmeier & Pierre Lanari
 # February 2024 (Cassis, France)
@@ -25,7 +28,10 @@ thermodynamic_database = "mp";
 solid_solution = "bi";
 
 # start with the Margules for biotite from White et al. (2014)
-# allow only the Margules W(phl,annm) to change within a range of 0-60 kJ/mol
+# alter the Margules W(phl,annm) 12 -> 1 kJ/mol
+# alter the Margules W(phl,obi)   4 -> 2  kJ/mol
+# alter the Margules W(phl,east) 10 -> 20 kJ/mol
+# allow the altered Margules to change within a range of -100 - 100 kJ/mol
 w_names =  ["W(phl,annm)",
             "W(phl,obi)",
             "W(phl,east)",
@@ -48,9 +54,9 @@ w_names =  ["W(phl,annm)",
             "W(tbi,mmbi)",
             "W(fbi,mmbi)"];
 
-w_initial_values = [10  0  0 ;
-                    4  0  0 ;
-                    10  0  0 ;
+w_initial_values = [1  0  0 ;
+                    2  0  0 ;
+                    20  0  0 ;
                     30  0  0 ;
                     8  0  0 ;
                     9  0  0 ;
@@ -71,9 +77,9 @@ w_initial_values = [10  0  0 ;
                     11.6  0  0];
 
 w_lower_bounds = copy(w_initial_values)
-w_lower_bounds[1,1] = -100;
+w_lower_bounds[1:3,1] .= -100;
 w_upper_bounds = copy(w_initial_values)
-w_upper_bounds[1,1] = 100;
+w_upper_bounds[1:3,1] .= 100;
 
 # use a G0 correction for the endmember annm of biotite
 # Increase the G0 of annm by 2 kJ/mol, reversing the ann -> annm G0 correction
@@ -111,9 +117,8 @@ constraints = filter(c -> in("bi",c.assemblage), constraints)
 # Call the inversion subroutine
 res, norm = inversion(job, constraints)
 
-# println(JOB.w_initial_values) # Note that we update JOB.w_initial_values in this version
-print(job)
-println("Margules parameters:")
+println("----------------------------------------")
+println("\nOptimised parameters:\n")
 if job.normalization == true
     println(res.minimizer .* norm)
 else

@@ -14,8 +14,9 @@ This module contains functions for the inversion of thermodynamic parameters usi
 
 
 """
-    JOB(thermodynamic_database, phase_to_be_optimised, w_names, w_initial_values, w_lower_bounds, w_upper_bounds;
-        algorithm = "NelderMead", number_iterations_max = 1000, normalization = true, number_constraints_max = nothing, max_time_seconds = 300)
+    JOB struct to set up the inversion:
+- THERMODYNAMIC VARIABLES TO BE OPTIMISED
+- INVERSION PARAMETERS
 """
 struct JOB{T1, T2, T3, T4, T5, T6}
     thermodynamic_database  ::T1                  # Thermodynamic database to use (mp, alk, ig, igd, mb, um)

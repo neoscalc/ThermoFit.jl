@@ -27,11 +27,12 @@ Performs a forward calculation (Gibbs energy minimisation) using MAGEMin.
 ## Returns
 - `out`: The output containing the results of the calculation.
 """
-function forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
+function forward_call(phase, database, constraint, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
     pressure_kbar = constraint.pressure_GPa * 10
     temperature_C = constraint.temperature_C
     bulk = constraint.bulk
     bulk_oxides = constraint.bulk_oxides
+    sys_in = constraint.sys_in
 
     gv = define_bulk_rock(gv, bulk, bulk_oxides, sys_in, database)
     gv, z_b, DB, splx_data = pwm_init(pressure_kbar, temperature_C, gv, z_b, DB, splx_data)

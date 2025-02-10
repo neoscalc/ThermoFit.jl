@@ -292,7 +292,7 @@ end
 
 Add an objective function Doc here.
 """
-function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db, sys_in = "mol")
+function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
     # Denormalise variables to optimise (Margules) for G-minimisation
     if job.normalization == true
         variables_optim_local = x0 .* job.var_optim_norm
@@ -351,7 +351,6 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db, sy
         out = forward_call(job.phase_to_be_optimised,
                            job.thermodynamic_database,
                            constraints[i],
-                           sys_in,
                            gv, z_b, DB, splx_data,
                            w_g = w_g,
                            g0_corr_vec = g0_corr,

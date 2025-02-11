@@ -254,7 +254,7 @@ function inversion(job, constraints)
 
 
     # Initiate MAGEMin
-    MAGEMin_db  = Initialize_MAGEMin(job.thermodynamic_database, verbose=false);
+    MAGEMin_db  = Initialize_MAGEMin(job.thermodynamic_database, solver=2, verbose=false);
 
 
     # PERFORM INVERSION: Check which algorithm to use

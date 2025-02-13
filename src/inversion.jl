@@ -129,19 +129,19 @@ struct JOB{T1, T2, T3, T4, T5, T6}
             var_optim           = g0_corr_optim
             var_optim_bounds    = g0_corr_optim_bounds
             var_optim_names     = g0_corr_optim_names
-            var_optim_norm      = g0_corr_optim .+ 0.01       # use the initial values as normalization factor + "small offset"
+            var_optim_norm      = abs.(g0_corr_optim) .+ 0.01       # use the initial values as normalization factor + "small offset"
             var_optim_type      = g0_optim_type
         elseif n_g0_corr == 0
             var_optim           = margules_optim
             var_optim_bounds    = margules_optim_bounds
             var_optim_names     = margules_optim_names
-            var_optim_norm      = margules_optim .+ 0.01       # use the initial values as normalization factor + "small offset"
+            var_optim_norm      = abs.(margules_optim) .+ 0.01       # use the initial values as normalization factor + "small offset"
             var_optim_type      = margules_optim_type
         else
             var_optim           = vcat(margules_optim, g0_corr_optim)
             var_optim_bounds    = vcat(margules_optim_bounds, g0_corr_optim_bounds)
             var_optim_names     = vcat(margules_optim_names, g0_corr_optim_names)
-            var_optim_norm      = vcat(margules_optim, g0_corr_optim) .+ 0.01       # use the initial values as normalization factor + "small offset"
+            var_optim_norm      = vcat(abs.(margules_optim), abs.(g0_corr_optim)) .+ 0.01       # use the initial values as normalization factor + "small offset"
             var_optim_type      = vcat(margules_optim_type, g0_optim_type)
         end
         

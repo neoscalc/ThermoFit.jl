@@ -310,8 +310,9 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     end
 
     # Initiate vectors for residuals (to be minimised) and q_cpm (used as metric that is printed during the inversion)
-    residual_vec    = zeros(nb_constraints)
-    qcmp_vec        = zeros(nb_constraints)
+    residual_vec        = zeros(nb_constraints)
+    qcmp_vec            = zeros(nb_constraints)
+    phase_pred_stable   = zeros(nb_constraints)
 
     println("\n-> New iteration <-")
     @threads for i in ProgressBar(1:nb_constraints)
@@ -362,6 +363,9 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
             residual_vec[i] = 100^2
             qcmp_vec[i] = 0
         else
+            # change 0 > 1 in the phase_pred_stable vector
+            phase_pred_stable[i] = 1
+
             composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
             #reorder to match the order of elements in the constraint
             idx_elements_constraint_in_out = indexin(constraints[i].mineral_elements, out.elements)
@@ -389,12 +393,19 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
 
     end
 
-    # println("residual_vec = ", 100 .- sqrt.(residual_vec))
-    # println("q_cpm      = ", qcmp_vec)
-    println("\n   Residual = ", sum(residual_vec))
+    # calculate the sum of residuals and fraction of constraints where the phase optimised is predicted stable
+    # values of sum of res should be rescaled by nb_constraints*100^2 to be of the same order of magnitude as the frac_phase_present
+    sum_res = sum(residual_vec)
+    sum_res_norm = sum_res / (nb_constraints*100^2)
+    frac_phase_present = sum(phase_pred_stable) / nb_constraints
+
+    residual = (sum_res_norm + (1-frac_phase_present)) * 100
+
+    println("\n   Residual = ", residual)
     println("   Metrics = ", sum(qcmp_vec)/length(qcmp_vec))
+    println("   Fraction of constraints where the phase is predicted stable = ", frac_phase_present)
+    println("   Loss composition = ", sum_res_norm)
+    println("\n   Optimied variables = ", variables_optim_local)
 
-    println("\n   Margules = ", variables_optim_local)
-
-    return sum(residual_vec)
+    return residual
 end

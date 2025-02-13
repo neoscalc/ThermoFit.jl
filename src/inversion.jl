@@ -224,7 +224,7 @@ Performs the inversion of thermodynamic parameters using MAGEMin.
 - `job::JOB`: JOB struct containing the inversion parameters
 - `constraints::Vector{Constraint}`: Vector of constraints
 """
-function inversion(job, constraints)
+function inversion(job, constraints; loss_f::Union{Function, Nothing}=nothing)
     # Unpack variables form JOB struct here
     var_optim               = job.var_optim
     norm                    = job.var_optim_norm
@@ -259,18 +259,18 @@ function inversion(job, constraints)
 
     # PERFORM INVERSION: Check which algorithm to use
     if algorithm == "NelderMead"
-        res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db),
+        res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
                        x0, NelderMead(),
                        Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
 
     elseif job.algorithm == "ParticleSwarm"
         # check again job.normlization as ParticleSwarm struct is initialised with/without normalised bounds
         if job.normalization == true
-            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db),
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
                            x0, ParticleSwarm(; lower = optim_bounds_normed[:,1], upper = optim_bounds_normed[:,2]),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))  # n_particles = 0
         else
-            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db),
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
                            x0,
                            ParticleSwarm(; lower = optim_bounds[:,1], upper = optim_bounds[:,2]),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))  # n_particles = 0
@@ -292,7 +292,7 @@ end
 
 Add an objective function Doc here.
 """
-function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
+function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Union{Function, Nothing}=nothing)
     # Denormalise variables to optimise (Margules) for G-minimisation
     if job.normalization == true
         variables_optim_local = x0 .* job.var_optim_norm
@@ -358,8 +358,8 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
 
         # check if the mineral is predicted to be stable
         if !(job.phase_to_be_optimised in out.ph)
-            # println("   Achtung: ",job.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
-            residual_vec[i] = 100
+            # println("   Achtung: ",job.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure_GPa) kbar and T = $(constraints[i].temperature_C) C")
+            residual_vec[i] = 100^2
             qcmp_vec[i] = 0
         else
             composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
@@ -372,13 +372,19 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
             end
 
             # compare predicted composition with the constraint composition
-            # calculate a loss (q_cmp)
+            # calculate Q_cmp as a metric
+            # calculate loss: Default is (100 - Q_cmp)^2 if no loss function is passed
             constraint_composition = constraints[i].mineral_composition_apfu[job.phase_to_be_optimised]
             constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
             qcmp_phase = bingo_calculate_qcmp_phase(composition_predicted,constraint_composition,constraint_uncertainties)
-
-            residual_vec[i] = (100-qcmp_phase)^2
             qcmp_vec[i] = qcmp_phase
+
+            if isnothing(loss_f)
+                residual_vec[i] = (100-qcmp_phase)^2
+            else
+                residual_vec[i] = loss_f(composition_predicted, constraint_composition)
+            end
+            
         end
 
     end

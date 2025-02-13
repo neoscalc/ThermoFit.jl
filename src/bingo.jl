@@ -67,6 +67,7 @@ function bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
     return qcmp_phase
 end
 
+
 function bingo_generate_fake_uncertainties(obs_comp)
     # Generate fake mineral composition uncertainties for Bingo
     #

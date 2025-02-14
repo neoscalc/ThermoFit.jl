@@ -129,19 +129,19 @@ struct JOB{T1, T2, T3, T4, T5, T6}
             var_optim           = g0_corr_optim
             var_optim_bounds    = g0_corr_optim_bounds
             var_optim_names     = g0_corr_optim_names
-            var_optim_norm      = g0_corr_optim .+ 0.01       # use the initial values as normalization factor + "small offset"
+            var_optim_norm      = abs.(g0_corr_optim) .+ 0.01       # use the initial values as normalization factor + "small offset"
             var_optim_type      = g0_optim_type
         elseif n_g0_corr == 0
             var_optim           = margules_optim
             var_optim_bounds    = margules_optim_bounds
             var_optim_names     = margules_optim_names
-            var_optim_norm      = margules_optim .+ 0.01       # use the initial values as normalization factor + "small offset"
+            var_optim_norm      = abs.(margules_optim) .+ 0.01       # use the initial values as normalization factor + "small offset"
             var_optim_type      = margules_optim_type
         else
             var_optim           = vcat(margules_optim, g0_corr_optim)
             var_optim_bounds    = vcat(margules_optim_bounds, g0_corr_optim_bounds)
             var_optim_names     = vcat(margules_optim_names, g0_corr_optim_names)
-            var_optim_norm      = vcat(margules_optim, g0_corr_optim) .+ 0.01       # use the initial values as normalization factor + "small offset"
+            var_optim_norm      = vcat(abs.(margules_optim), abs.(g0_corr_optim)) .+ 0.01       # use the initial values as normalization factor + "small offset"
             var_optim_type      = vcat(margules_optim_type, g0_optim_type)
         end
         
@@ -224,7 +224,7 @@ Performs the inversion of thermodynamic parameters using MAGEMin.
 - `job::JOB`: JOB struct containing the inversion parameters
 - `constraints::Vector{Constraint}`: Vector of constraints
 """
-function inversion(job, constraints)
+function inversion(job, constraints; loss_f::Union{Function, Nothing}=nothing)
     # Unpack variables form JOB struct here
     var_optim               = job.var_optim
     norm                    = job.var_optim_norm
@@ -259,18 +259,18 @@ function inversion(job, constraints)
 
     # PERFORM INVERSION: Check which algorithm to use
     if algorithm == "NelderMead"
-        res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db),
+        res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
                        x0, NelderMead(),
                        Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
 
     elseif job.algorithm == "ParticleSwarm"
         # check again job.normlization as ParticleSwarm struct is initialised with/without normalised bounds
         if job.normalization == true
-            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db),
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
                            x0, ParticleSwarm(; lower = optim_bounds_normed[:,1], upper = optim_bounds_normed[:,2]),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))  # n_particles = 0
         else
-            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db),
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
                            x0,
                            ParticleSwarm(; lower = optim_bounds[:,1], upper = optim_bounds[:,2]),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))  # n_particles = 0
@@ -292,7 +292,7 @@ end
 
 Add an objective function Doc here.
 """
-function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
+function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Union{Function, Nothing}=nothing)
     # Denormalise variables to optimise (Margules) for G-minimisation
     if job.normalization == true
         variables_optim_local = x0 .* job.var_optim_norm
@@ -310,8 +310,9 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
     end
 
     # Initiate vectors for residuals (to be minimised) and q_cpm (used as metric that is printed during the inversion)
-    residual_vec    = zeros(nb_constraints)
-    qcmp_vec        = zeros(nb_constraints)
+    residual_vec        = zeros(nb_constraints)
+    qcmp_vec            = zeros(nb_constraints)
+    phase_pred_stable   = zeros(nb_constraints)
 
     println("\n-> New iteration <-")
     @threads for i in ProgressBar(1:nb_constraints)
@@ -358,10 +359,13 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
 
         # check if the mineral is predicted to be stable
         if !(job.phase_to_be_optimised in out.ph)
-            # println("   Achtung: ",job.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure) kbar and T = $(constraints[i].temperature) C")
-            residual_vec[i] = 100
+            # println("   Achtung: ",job.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure_GPa) kbar and T = $(constraints[i].temperature_C) C")
+            residual_vec[i] = 100^2
             qcmp_vec[i] = 0
         else
+            # change 0 > 1 in the phase_pred_stable vector
+            phase_pred_stable[i] = 1
+
             composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
             #reorder to match the order of elements in the constraint
             idx_elements_constraint_in_out = indexin(constraints[i].mineral_elements, out.elements)
@@ -372,23 +376,36 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db)
             end
 
             # compare predicted composition with the constraint composition
-            # calculate a loss (q_cmp)
+            # calculate Q_cmp as a metric
+            # calculate loss: Default is (100 - Q_cmp)^2 if no loss function is passed
             constraint_composition = constraints[i].mineral_composition_apfu[job.phase_to_be_optimised]
             constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
             qcmp_phase = bingo_calculate_qcmp_phase(composition_predicted,constraint_composition,constraint_uncertainties)
-
-            residual_vec[i] = (100-qcmp_phase)^2
             qcmp_vec[i] = qcmp_phase
+
+            if isnothing(loss_f)
+                residual_vec[i] = (100-qcmp_phase)^2
+            else
+                residual_vec[i] = loss_f(composition_predicted, constraint_composition)
+            end
+            
         end
 
     end
 
-    # println("residual_vec = ", 100 .- sqrt.(residual_vec))
-    # println("q_cpm      = ", qcmp_vec)
-    println("\n   Residual = ", sum(residual_vec))
+    # calculate the sum of residuals and fraction of constraints where the phase optimised is predicted stable
+    # values of sum of res should be rescaled by nb_constraints*100^2 to be of the same order of magnitude as the frac_phase_present
+    sum_res = sum(residual_vec)
+    sum_res_norm = sum_res / (nb_constraints*100^2)
+    frac_phase_present = sum(phase_pred_stable) / nb_constraints
+
+    residual = (sum_res_norm + (1-frac_phase_present)) * 100
+
+    println("\n   Residual = ", residual)
     println("   Metrics = ", sum(qcmp_vec)/length(qcmp_vec))
+    println("   Fraction of constraints where the phase is predicted stable = ", frac_phase_present)
+    println("   Loss composition = ", sum_res_norm)
+    println("\n   Optimied variables = ", variables_optim_local)
 
-    println("\n   Margules = ", variables_optim_local)
-
-    return sum(residual_vec)
+    return residual
 end

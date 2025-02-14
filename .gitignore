@@ -1,5 +1,8 @@
 .vscode/*
 Manifest.toml
 
+# dir for test inversion runs during development
+dev_inv_runs/*
+
 # a julia file for quick testing with MAGEMin's outputs:
 QUICKTEST.jl

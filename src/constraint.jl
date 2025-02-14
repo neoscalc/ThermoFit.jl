@@ -1,12 +1,12 @@
 struct Constraint
-    pressure_GPa::Float64
-    temperature_C::Float64
-    bulk::Vector{Float64}
-    bulk_oxides::Vector{String}
-    sys_in::String
-    assemblage::Vector{String}
-    mineral_composition_apfu::OrderedDict{String, Vector{Float64}}
-    mineral_elements::Vector{String}
+    pressure_GPa                    ::Float64
+    temperature_C                   ::Float64
+    bulk                            ::Vector{Float64}
+    bulk_oxides                     ::Vector{String}
+    sys_in                          ::String
+    assemblage                      ::Vector{String}
+    mineral_composition_apfu        ::OrderedDict{String, Vector{Float64}}
+    mineral_elements                ::Vector{String}
 end
 
 

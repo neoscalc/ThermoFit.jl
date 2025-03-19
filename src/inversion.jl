@@ -195,7 +195,7 @@ Prints the job parameters.
 """
 function print_job(job)
     println("   -----------------------------------------------------")
-    println(" - Variables to be optimized [name type start min max]:")
+    println(" - Margules to be optimized [name type start min max]:")
     type_w = ["WH","WS","WV"]
     for i = 1:length(job.w_names)
         for j = 1:3
@@ -205,6 +205,17 @@ function print_job(job)
                         "\t ",job. w_initial_values[i,j],
                         "\t ", job.w_lower_bounds[i,j],
                         " \t ", job.w_upper_bounds[i,j]) 
+            end
+        end
+    end
+    if !isnothing(job.g0_corr_endmembers)
+        println(" - G0 corrections [name start min max]:")
+        for i = 1:length(job.g0_corr_endmembers)
+            if job.g0_corr_upper_bounds[i] > job.g0_corr_lower_bounds[i]
+                println("    ", job.g0_corr_endmembers[i],
+                        "  \t", job.g0_corr_initial_values[i],
+                        "\t ", job.g0_corr_lower_bounds[i],
+                        " \t ", job.g0_corr_upper_bounds[i])
             end
         end
     end

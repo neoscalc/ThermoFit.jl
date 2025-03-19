@@ -99,18 +99,6 @@ end
 # Test of individual modules and functions therein
 ##############################################################################################################
 
-@testset "bingo.jl" begin
-
-    obs_comp = [1,1.2,3.1]
-    obs_unc = [0.1,0.023,0.3]
-    mod_comp = [0.9,1.3,3.4]
-
-    qcmp = bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
-
-    @test qcmp ≈ 69.277480978266283 atol=1e-6
-
-end
-
 @testset "forward.jl" begin
     phase = "bi"
     database = "mp"
@@ -259,6 +247,22 @@ end
                 10 20 50]
 
     @test initial == init_mod
+end
+
+@testset "loss.jl" begin
+    obs_comp = [1,1.2,3.1]
+    obs_unc = [0.1,0.023,0.3]
+    mod_comp = [0.9,1.3,3.4]
+
+    qcmp = bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
+    @test qcmp ≈ 69.277480978266283 atol=1e-6
+
+    chi_sq = chi_squared([1], [1])
+    @test chi_sq ≈ 0.0
+    # test the case where some entires of the y_ref are 0.
+    chi_sq = chi_squared([2.6572905827428244, 1.6854188345143521, 0.0, 0.7083961204322737, 1.8506162969359523, 1.0, 0.0, 0.08748017934638537, 12.0, 0.01079798602821248, 1.8250396413072292],
+                            [2.753923663554854, 1.492152672890293, 0.0001, 0.8098024031864187, 1.86172245548464, 1.0, 0.001, 0.07438530934379976, 12.000000000000002, 0.008013495539994909, 1.8512293813124006])
+    @test chi_sq ≈ 0.045930935122671865
 end
 
 @testset "pixelmap.jl" begin

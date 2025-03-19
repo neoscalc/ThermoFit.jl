@@ -405,9 +405,9 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     end
 
     # calculate the sum of residuals and fraction of constraints where the phase optimised is predicted stable
-    # values of sum of res should be rescaled by nb_constraints*100^2 to be of the same order of magnitude as the frac_phase_present
+    # values of sum of res should be rescaled by nb_constraints to be of the same order of magnitude as the frac_phase_present
     sum_res = sum(residual_vec)
-    sum_res_norm = sum_res / (nb_constraints*100^2)
+    sum_res_norm = sum_res / nb_constraints
     frac_phase_present = sum(phase_pred_stable) / nb_constraints
 
     residual = (sum_res_norm + (1-frac_phase_present)) * 100

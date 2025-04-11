@@ -195,7 +195,7 @@ Prints the job parameters.
 """
 function print_job(job)
     println("   -----------------------------------------------------")
-    println(" - Variables to be optimized [name type start min max]:")
+    println(" - Margules to be optimized [name type start min max]:")
     type_w = ["WH","WS","WV"]
     for i = 1:length(job.w_names)
         for j = 1:3
@@ -205,6 +205,17 @@ function print_job(job)
                         "\t ",job. w_initial_values[i,j],
                         "\t ", job.w_lower_bounds[i,j],
                         " \t ", job.w_upper_bounds[i,j]) 
+            end
+        end
+    end
+    if !isnothing(job.g0_corr_endmembers)
+        println(" - G0 corrections [name start min max]:")
+        for i = 1:length(job.g0_corr_endmembers)
+            if job.g0_corr_upper_bounds[i] > job.g0_corr_lower_bounds[i]
+                println("    ", job.g0_corr_endmembers[i],
+                        "  \t", job.g0_corr_initial_values[i],
+                        "\t ", job.g0_corr_lower_bounds[i],
+                        " \t ", job.g0_corr_upper_bounds[i])
             end
         end
     end
@@ -394,9 +405,9 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     end
 
     # calculate the sum of residuals and fraction of constraints where the phase optimised is predicted stable
-    # values of sum of res should be rescaled by nb_constraints*100^2 to be of the same order of magnitude as the frac_phase_present
+    # values of sum of res should be rescaled by nb_constraints to be of the same order of magnitude as the frac_phase_present
     sum_res = sum(residual_vec)
-    sum_res_norm = sum_res / (nb_constraints*100^2)
+    sum_res_norm = sum_res / nb_constraints
     frac_phase_present = sum(phase_pred_stable) / nb_constraints
 
     residual = (sum_res_norm + (1-frac_phase_present)) * 100

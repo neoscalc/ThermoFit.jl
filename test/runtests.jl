@@ -99,18 +99,6 @@ end
 # Test of individual modules and functions therein
 ##############################################################################################################
 
-@testset "bingo.jl" begin
-
-    obs_comp = [1,1.2,3.1]
-    obs_unc = [0.1,0.023,0.3]
-    mod_comp = [0.9,1.3,3.4]
-
-    qcmp = bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
-
-    @test qcmp ≈ 69.277480978266283 atol=1e-6
-
-end
-
 @testset "forward.jl" begin
     phase = "bi"
     database = "mp"
@@ -260,4 +248,45 @@ end
 
     @test initial == init_mod
 end
+
+@testset "loss.jl" begin
+    obs_comp = [1,1.2,3.1]
+    obs_unc = [0.1,0.023,0.3]
+    mod_comp = [0.9,1.3,3.4]
+
+    qcmp = bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
+    @test qcmp ≈ 69.277480978266283 atol=1e-6
+
+    chi_sq = chi_squared([1], [1])
+    @test chi_sq ≈ 0.0
+    # test the case where some entires of the y_ref are 0.
+    chi_sq = chi_squared([2.6572905827428244, 1.6854188345143521, 0.0, 0.7083961204322737, 1.8506162969359523, 1.0, 0.0, 0.08748017934638537, 12.0, 0.01079798602821248, 1.8250396413072292],
+                            [2.753923663554854, 1.492152672890293, 0.0001, 0.8098024031864187, 1.86172245548464, 1.0, 0.001, 0.07438530934379976, 12.000000000000002, 0.008013495539994909, 1.8512293813124006])
+    @test chi_sq ≈ 0.045930935122671865
+end
+
+@testset "pixelmap.jl" begin
+    temperature_vec = Vector(550.:10:580)
+    pressure_vec = Vector(4.:0.5:5.5)
+    comp_variables_export = ["Si", "Fe", "Mg"]
+    database = "mp"
+    w_g = nothing
+    G_0 = [0., 0., 0., 0., 0., 0., 0.]
+    phase = "bi"
+    # bulk from White et al. 2014b (Fig. 8)
+    bulk = [64.578, 13.651, 1.586, 5.529, 8.025, 2.943, 2.000, 0.907, 0.175, 40.]
+    bulk_oxides = ["SiO2", "Al2O3", "CaO", "MgO", "FeO", "K2O", "Na2O", "TiO2", "MnO", "H2O"]
+    sys_in = "mol"
+
+    min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
+
+    @test min_comp[1][2,2] ≈ 2.7340356340442105
+
+    w_g = repeat([0.], 21)
+
+    min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
+
+    @test min_comp[1][2,2] ≈ 2.6369670586738323
+end
+
 end

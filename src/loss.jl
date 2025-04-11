@@ -108,6 +108,13 @@ end
     - y_ref::AbstractVector: The composition of the constraint
 """
 function chi_squared(y::AbstractVector, y_ref::AbstractVector)::Float64
-    chi_squared = sum((y .- y_ref).^2 ./ y_ref)
+    chi_squared_vec = (y .- y_ref).^2 ./ y_ref
+    # //NOTE This is a bit a hacky fix...
+    # Chi-squared loss is not defined for any entriy in y_ref = 0. This should only be a probkem when "inverting" with simulated constraints,
+    # as for natural constraints compositional variables that are not measured will most likely never be considered
+    # replace NaNs with 0
+    chi_squared_vec[isnan.(chi_squared_vec)] .= 0
+
+    chi_squared = sum(chi_squared_vec)
     return chi_squared
 end

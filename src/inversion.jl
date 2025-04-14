@@ -48,11 +48,15 @@ struct JOB{T1, T2, T3, T4, T5, T6}
     # Here more thermodyn parms could be added...
     
     # INVERSION PARAMETERS
-    algorithm               ::T1                 
-    number_iterations_max   ::T4                 
-    normalization           ::T5                 
-    number_constraints_max  ::Union{T4, Nothing} 
-    max_time_seconds        ::T4                
+    algorithm                 ::T1                 
+    number_iterations_max     ::T4                 
+    normalization             ::T5                 
+    number_constraints_max    ::Union{T4, Nothing} 
+    max_time_seconds          ::T4
+    n_rand_strating_guesses   ::Union{T4, Nothing}
+    
+    # VERBOSITY
+    verbose                   ::T5
 
     function JOB(thermodynamic_database     ::T1,
                  phase_to_be_optimised      ::T1;
@@ -68,9 +72,10 @@ struct JOB{T1, T2, T3, T4, T5, T6}
                  number_iterations_max      ::T4                 = 1000,
                  normalization              ::T5                 = true,
                  number_constraints_max     ::Union{T4, Nothing} = nothing,
-                 max_time_seconds           ::T4                 = 300) where {T1<:AbstractString, T2<:AbstractArray{String},
-                                                               T3, T4<:Integer, T5<:Bool, 
-                                                               T6}
+                 max_time_seconds           ::T4                 = 300,
+                 n_rand_strating_guesses    ::Union{T4, Nothing} = nothing,
+                 verbose                    ::T5                 = true) where {T1<:AbstractString, T2<:AbstractArray{String},
+                                                                                T3, T4<:Integer, T5<:Bool, T6}
 
         # Check if the database is existent
         if !(thermodynamic_database in ["mp", "alk", "ig", "igd", "mb", "um"])
@@ -78,7 +83,7 @@ struct JOB{T1, T2, T3, T4, T5, T6}
         end
 
         # Check if the algorithm is implemented
-        if !(algorithm in ["NelderMead", "ParticleSwarm"])
+        if !(algorithm in ["NelderMead", "NelderMead_random_guess", "ParticleSwarm"])
             @error "Error: Algorithm not recognised"
         end
 
@@ -164,7 +169,9 @@ struct JOB{T1, T2, T3, T4, T5, T6}
                                 number_iterations_max,
                                 normalization,
                                 number_constraints_max,
-                                max_time_seconds)
+                                max_time_seconds,
+                                n_rand_strating_guesses,
+                                verbose)
     end
 end
 
@@ -252,6 +259,7 @@ function inversion(job, constraints; loss_f::Union{Function, Nothing}=nothing)
     algorithm = job.algorithm
     max_time_seconds = job.max_time_seconds
     max_iterations = job.number_iterations_max
+    n_rand_strating_guesses = job.n_rand_strating_guesses
 
     # determine the number of constraints to use for the inversion
     nb_constraints = length(constraints)
@@ -261,7 +269,9 @@ function inversion(job, constraints; loss_f::Union{Function, Nothing}=nothing)
             nb_constraints = job.number_constraints_max
         end
     end
-    println("\n-> New inversion with ",nb_constraints," constraints <-")
+    if job.verbose
+        println("   Number of constraints used for the inversion: ", nb_constraints)
+    end
 
 
     # Initiate MAGEMin
@@ -273,6 +283,34 @@ function inversion(job, constraints; loss_f::Union{Function, Nothing}=nothing)
         res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
                        x0, NelderMead(),
                        Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+        return res, norm
+
+    elseif algorithm == "NelderMead_random_guess"
+        # create a vector of randoom starting guesses for the 'var_optim' within the 'var_opti_bounds'
+        var_optim_starting_points = rand(length(var_optim), n_rand_strating_guesses) .* (optim_bounds[:,2] .- optim_bounds[:,1]) .+ optim_bounds[:,1]
+        
+        if job.normalization == true
+            x0 = var_optim_starting_points ./ norm
+        else
+            x0 = var_optim_starting_points
+            norm = ones(size(x0, 1))
+        end
+
+        # create a vector for res of the optimisation
+        x_optim = zeros(size(x0))
+        residual_vec = zeros(n_rand_strating_guesses)
+
+        # loop over the random starting points and perform the optimisation using NelderMead
+        for i in ProgressBar(1:n_rand_strating_guesses)
+            res_i = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                             x0[:, i], NelderMead(),
+                             Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+        
+            x_optim[:, i] = Optim.minimizer(res_i)
+            residual_vec[i] = Optim.minimum(res_i)
+        end
+        
+        return x_optim, residual_vec, norm
 
     elseif job.algorithm == "ParticleSwarm"
         # check again job.normlization as ParticleSwarm struct is initialised with/without normalised bounds
@@ -286,15 +324,13 @@ function inversion(job, constraints; loss_f::Union{Function, Nothing}=nothing)
                            ParticleSwarm(; lower = optim_bounds[:,1], upper = optim_bounds[:,2]),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))  # n_particles = 0
         end
-    
+        return res, norm
     else
         res = 1e20
         println("Error: algorithm not recognised")
     end
 
     Finalize_MAGEMin(MAGEMin_db)
-
-    return res, norm
 end
 
 
@@ -325,8 +361,14 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     qcmp_vec            = zeros(nb_constraints)
     phase_pred_stable   = zeros(nb_constraints)
 
-    println("\n-> New iteration <-")
-    @threads for i in ProgressBar(1:nb_constraints)
+    if job.verbose
+        println("\n-> New iteration <-")
+        itr = ProgressBar(1:nb_constraints)
+    else
+        itr = 1:nb_constraints
+    end
+    # @threads for i in ProgressBar(1:nb_constraints)
+    @threads for i in itr
         # identify thread and acess the MAGEMin_db of the thread
         id          = Threads.threadid()
         # println("   Thread ",id," is working on constraint ",i," of ",nb_constraints)
@@ -412,11 +454,13 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
 
     residual = (sum_res_norm + (1-frac_phase_present)) * 100
 
-    println("\n   Residual = ", residual)
-    println("   Metrics = ", sum(qcmp_vec)/length(qcmp_vec))
-    println("   Fraction of constraints where the phase is predicted stable = ", frac_phase_present)
-    println("   Loss composition = ", sum_res_norm)
-    println("\n   Optimied variables = ", variables_optim_local)
+    if job.verbose
+        println("\n   Residual = ", residual)
+        println("   Metrics = ", sum(qcmp_vec)/length(qcmp_vec))
+        println("   Fraction of constraints where the phase is predicted stable = ", frac_phase_present)
+        println("   Loss composition = ", sum_res_norm)
+        println("\n   Optimied variables = ", variables_optim_local)
+    end
 
     return residual
 end

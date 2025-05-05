@@ -239,10 +239,10 @@ end
 Performs the inversion of thermodynamic parameters using MAGEMin.
 
 # Arguments
-- `job::JOB`: JOB struct containing the inversion parameters
+- `job::JOB`:: JOB struct containing the inversion parameters
 - `constraints::Vector{Constraint}`: Vector of constraints
 """
-function inversion(job, constraints; loss_f::Union{Function, Nothing}=nothing)
+function inversion(job, constraints; loss_f::Function=loss_Qfactor)
     # Unpack variables form JOB struct here
     var_optim               = job.var_optim
     norm                    = job.var_optim_norm
@@ -339,7 +339,7 @@ end
 
 Add an objective function Doc here.
 """
-function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Union{Function, Nothing}=nothing)
+function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Function=loss_Qfactor)
     # Denormalise variables to optimise (Margules) for G-minimisation
     if job.normalization == true
         variables_optim_local = x0 .* job.var_optim_norm
@@ -356,18 +356,24 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
         end
     end
 
-    # Initiate vectors for residuals (to be minimised) and q_cpm (used as metric that is printed during the inversion)
-    residual_vec        = zeros(nb_constraints)
+    # Initiate vectors for loss (to be minimised) and Q_cmp (used as metric that is printed during the inversion)
+    loss_vec            = zeros(nb_constraints)
     qcmp_vec            = zeros(nb_constraints)
     phase_pred_stable   = zeros(nb_constraints)
 
+    # Conditional definition of the iterator before the looping over the constraints,
+    # this way the verbosity can be toggled, by defining the iterator either with or
+    # without a progressbar
     if job.verbose
         println("\n-> New iteration <-")
         itr = ProgressBar(1:nb_constraints)
     else
         itr = 1:nb_constraints
     end
-    # @threads for i in ProgressBar(1:nb_constraints)
+
+    # --------------------------------------------------
+    # MAIN LOOP: Calculate the loss over all constraints
+    # --------------------------------------------------
     @threads for i in itr
         # identify thread and acess the MAGEMin_db of the thread
         id          = Threads.threadid()
@@ -410,17 +416,20 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
                            g0_corr_vec = g0_corr,
                            g0_corr_em = g0_corr_endmembers)
 
+        # --------------------------------
+        # Process the minimisation output:
+        # --------------------------------
         # check if the mineral is predicted to be stable
         if !(job.phase_to_be_optimised in out.ph)
             # println("   Achtung: ",job.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure_GPa) kbar and T = $(constraints[i].temperature_C) C")
-            residual_vec[i] = 100^2
             qcmp_vec[i] = 0
+            loss_vec[i] = 100
         else
             # change 0 > 1 in the phase_pred_stable vector
             phase_pred_stable[i] = 1
 
             composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
-            #reorder to match the order of elements in the constraint
+            #reorder the compositional vector to match the order of elements in the constraint
             idx_elements_constraint_in_out = indexin(constraints[i].mineral_elements, out.elements)
             if nothing in idx_elements_constraint_in_out
                 @error "Error: Constraint #$(i) has a mineral composition with elements that are not in the predicted mineral composition."
@@ -428,37 +437,29 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
                 composition_predicted = composition_predicted[idx_elements_constraint_in_out]
             end
 
-            # compare predicted composition with the constraint composition
-            # calculate Q_cmp as a metric
-            # calculate loss: Default is (100 - Q_cmp)^2 if no loss function is passed
             constraint_composition = constraints[i].mineral_composition_apfu[job.phase_to_be_optimised]
-            constraint_uncertainties = bingo_generate_fake_uncertainties(constraint_composition)
-            qcmp_phase = bingo_calculate_qcmp_phase(composition_predicted,constraint_composition,constraint_uncertainties)
-            qcmp_vec[i] = qcmp_phase
-
-            if isnothing(loss_f)
-                residual_vec[i] = (100-qcmp_phase)^2
-            else
-                residual_vec[i] = loss_f(composition_predicted, constraint_composition)
-            end
-            
+            # calculate loss: Default is loss_Qfactor: (100 - Q_cmp)
+            loss_vec[i] = loss_f(composition_predicted, constraint_composition)
+            # calculate Q_cmp as a metric beside the loss function
+            qcmp_vec[i] = quality_factor(constraint_composition, composition_predicted)            
         end
 
     end
 
-    # calculate the sum of residuals and fraction of constraints where the phase optimised is predicted stable
-    # values of sum of res should be rescaled by nb_constraints to be of the same order of magnitude as the frac_phase_present
-    sum_res = sum(residual_vec)
-    sum_res_norm = sum_res / nb_constraints
-    frac_phase_present = sum(phase_pred_stable) / nb_constraints
+    # calculate the mean loss over all constraints and the fraction of constraints where the phase optimised is predicted stable
+    mean_loss = sum(loss_vec) / nb_constraints
+    frac_phase_present = (sum(phase_pred_stable) / nb_constraints) * 100
+    # calculate the mean between the two
+    residual = .5 * (mean_loss + frac_phase_present)
 
-    residual = (sum_res_norm + (1-frac_phase_present)) * 100
+    # Calculate the mean Q_cmp metric
+    qcmp = sum(qcmp_vec) / nb_constraints
 
     if job.verbose
         println("\n   Residual = ", residual)
-        println("   Metrics = ", sum(qcmp_vec)/length(qcmp_vec))
+        println("   Metrics = ", qcmp)
         println("   Fraction of constraints where the phase is predicted stable = ", frac_phase_present)
-        println("   Loss composition = ", sum_res_norm)
+        println("   Loss composition = ", mean_loss)
         println("\n   Optimied variables = ", variables_optim_local)
     end
 

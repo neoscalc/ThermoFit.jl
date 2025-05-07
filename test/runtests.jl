@@ -254,8 +254,17 @@ end
     obs_unc = [0.1,0.023,0.3]
     mod_comp = [0.9,1.3,3.4]
 
-    qcmp = bingo_calculate_qcmp_phase(mod_comp,obs_comp,obs_unc)
-    @test qcmp ≈ 69.277480978266283 atol=1e-6
+    qcmp = quality_factor(obs_comp, mod_comp, σ_mineral_composition=obs_unc)
+    @test qcmp ≈ 71.764850 atol=1e-6
+
+    mineral_composition = [2.759354815491806, 1.4812903690163892, 0.0, 0.7139985067983436, 1.9660677870945396, 1.0000000000000002, 0.0, 0.07253223308739398, 12.000000000000002, 0.006756288511528444, 1.8549355338252123]
+    mineral_composition_model = [2.7947957453606866, 1.4104085092786263, 0.0, 0.9349114231969469, 1.7778250850758313, 1.0, 0.0, 0.07012848694771599, 12.0, 0.011930750140192514, 1.859743026104568]
+
+    mineral_composition_unc = bingo_generate_fake_uncertainties(mineral_composition)
+
+    qcmp = quality_factor(mineral_composition, mineral_composition_model, σ_mineral_composition=mineral_composition_unc)
+
+    @test qcmp ≈ 71.49547205205687
 
     chi_sq = chi_squared([1], [1])
     @test chi_sq ≈ 0.0

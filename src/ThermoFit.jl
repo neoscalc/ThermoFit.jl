@@ -17,7 +17,7 @@ include("pixelmap.jl")
 export Constraint, read_constraints_from_yml
 export forward_call, calculate_w_g
 export JOB, print_job, variable_optimised, inversion, objective_function
-export bingo_calculate_qcmp_phase, bingo_generate_fake_uncertainties, chi_squared
+export loss_Qfactor, quality_factor, bingo_generate_fake_uncertainties, chi_squared
 export pixelmap
 
 end

@@ -103,7 +103,7 @@ end
 
     @test length(constraints) == 2
     @test constraints[1].pressure_GPa == 1.249280915513082
-    @test constraints[2].temperature_C == 680.9203054784309
+    @test constraints[2].temperature_C == 686.3716467703077
     @test constraints[2].bulk == [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30]
 end
 

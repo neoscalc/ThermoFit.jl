@@ -1,5 +1,5 @@
 #=
-Here a series of pissoble loss functions should be defined.
+Here a series of possible loss functions should be defined.
 
 All loss functions should be of the form:
 
@@ -97,8 +97,8 @@ end
     chi_squared(y::AbstractVector, y_ref::AbstractVector)::Float64
 
 ## Arguments
-    - y::AbstractVector: The predicted composition
-    - y_ref::AbstractVector: The composition of the constraint
+    - y       ::AbstractVector: The predicted composition
+    - y_ref   ::AbstractVector: The composition of the constraint
 """
 function chi_squared(y::AbstractVector, y_ref::AbstractVector)::Float64
     chi_squared_vec = (y .- y_ref).^2 ./ y_ref
@@ -110,4 +110,87 @@ function chi_squared(y::AbstractVector, y_ref::AbstractVector)::Float64
 
     chi_squared = sum(chi_squared_vec)
     return chi_squared
+end
+
+"""
+Misfit function of the form ϕ  = (T_{model} - T_Ti-in-Bt(biotite_composition_model))^2
+"""
+function Ti_in_Bt_misfit(biotite_composition_model, T_C, elements)
+    idx_Ti = findfirst("Ti" .== elements)
+    idx_Mg = findfirst("Mg" .== elements)
+    idx_Fe = findfirst("Fe" .== elements)
+
+    Ti_apfu = biotite_composition_model[idx_Ti]
+    Mg_apfu = biotite_composition_model[idx_Mg]
+    Fe_apfu = biotite_composition_model[idx_Fe]
+
+    ϕ = abs(T_C .- Ti_in_Bt_Henry05(Ti_apfu, Mg_apfu, Fe_apfu))
+
+    return ϕ
+end
+
+"""
+Ti-in-Bt thermometer of [Henry et al. (2005)](https://doi.org/10.2138/am.2005.1498)
+"""
+function Ti_in_Bt_Henry05(Ti_apfu, Mg_apfu, Fe_apfu)
+    # function parameters of Henry at al.'s fit:
+    a = -2.354
+    b = 4.6482e-9
+    c = -1.7283
+
+    # convert the Ti[apfu] in 11-Ox. base to 22-Ox. base
+    Ti_22Ox_base = 2 .* Ti_apfu
+    # calculate XMg as (Mg)/(Mg + Fetot)
+    X_Mg = Mg_apfu ./ (Mg_apfu .+ Fe_apfu)
+
+    T_C_cubed = ((log.(Ti_22Ox_base) .- a .- c .* X_Mg.^3) ./ b)
+    # if T_C_cubed is <0, Henry's thermometer is not defined, and the temperature is reported as missing
+    # NOTE - This might cause a problem!
+    if T_C_cubed < 0
+        T_C = missing
+    else
+        T_C = T_C_cubed .^(1/3)
+    end
+
+    return T_C
+end
+
+"""
+Ti saturation in biotite after [Henry et al. (2005)](https://doi.org/10.2138/am.2005.1498)
+
+Adjusted for 11-Ox. base biotite, instead of 22-Ox. --> multiply by 0.5
+"""
+function Ti_saturation_Henry05(T_C, Mg_apfu, Fe_apfu)
+    # function parameters of Henry at al.'s fit:
+    a = -2.354
+    b = 4.6482e-9
+    c = -1.7283
+    
+    # calculate XMg as (Mg)/(Mg + Fetot)
+    X_Mg = Mg_apfu ./ (Mg_apfu .+ Fe_apfu)
+
+    return 0.5 * exp(a + b * T_C^3 + c * X_Mg^3)
+end
+
+
+function Ti_sat_misfit(biotite_composition_model, T_C, assemblage, elements)
+    idx_Ti = findfirst("Ti" .== elements)
+    idx_Mg = findfirst("Mg" .== elements)
+    idx_Fe = findfirst("Fe" .== elements)
+
+    Ti_apfu = biotite_composition_model[idx_Ti]
+    Mg_apfu = biotite_composition_model[idx_Mg]
+    Fe_apfu = biotite_composition_model[idx_Fe]
+
+    if any(x -> x in assemblage, ["ilm", "ru"])
+        ϕ = abs(Ti_apfu - Ti_saturation_Henry05(T_C, Mg_apfu, Fe_apfu))
+    else
+        Δsat = Ti_apfu - Ti_saturation_Henry05(T_C, Mg_apfu, Fe_apfu)
+        if Δsat > 0
+            ϕ = abs(Δsat)
+        else
+            ϕ = 0
+        end
+    end
+    return ϕ   
 end

@@ -242,7 +242,7 @@ Performs the inversion of thermodynamic parameters using MAGEMin.
 - `job::JOB`:: JOB struct containing the inversion parameters
 - `constraints::Vector{Constraint}`: Vector of constraints
 """
-function inversion(job, constraints; loss_f::Function=loss_Qfactor)
+function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=false)
     # Unpack variables form JOB struct here
     var_optim               = job.var_optim
     norm                    = job.var_optim_norm
@@ -280,9 +280,15 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor)
 
     # PERFORM INVERSION: Check which algorithm to use
     if algorithm == "NelderMead"
-        res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
-                       x0, NelderMead(),
-                       Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+        if !func_rel
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                           x0, NelderMead(),
+                           Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+        else func_rel
+            res = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                           x0, NelderMead(),
+                           Optim.Options(time_limit = max_time_seconds, iterations = max_iterations, store_trace = true))
+        end
         return res, norm
 
     elseif algorithm == "NelderMead_random_guess"
@@ -466,7 +472,7 @@ function objective_function_func_relation(x0, job, constraints, nb_constraints, 
 
     # Initiate vectors for the loss
     loss_vec            = zeros(nb_constraints)
-    metric_vec          = zeros(nb_constraints)
+    metric_vec          = Array{Union{Missing, Float64}}(undef, nb_constraints)
 
     # Conditional definition of the iterator before the looping over the constraints,
     # this way the verbosity can be toggled, by defining the iterator either with or

@@ -78,6 +78,19 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
     out_vec = multi_point_minimization(P_GPa .* 10, T_C, MAGEMin_db, X=bulk_rock, Xoxides=bulk_oxides, sys_in=sys_in)
     assemblage = [out.ph for out in out_vec]
 
+    mineral_composition_apfu = []
+    # generate the mineral_comp_apfu using MAGEMin_C for each constraint where ``phase`` is stable
+    for i in eachindex(assemblage)
+        if phase in assemblage[i]
+            comp_apfu = out_vec[i].SS_vec[findfirst(phase .== assemblage[i])].Comp_apfu
+            min_comp = OrderedDict{String, Any}()
+            min_comp[phase] = comp_apfu
+            append!(mineral_composition_apfu, [min_comp])
+        else
+            append!(mineral_composition_apfu, [nothing])
+        end
+    end
+
     Finalize_MAGEMin(MAGEMin_db)
     
     constraints_vec = Vector{Constraint}(undef, nb_constraints)
@@ -89,7 +102,7 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                         bulk_oxides,
                                         sys_in,
                                         assemblage[i],
-                                        nothing,
+                                        mineral_composition_apfu[i],
                                         mineral_elements)
     end
 

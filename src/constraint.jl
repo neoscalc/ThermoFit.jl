@@ -54,6 +54,7 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                             bulk_rock           ::Union{Vector{<:AbstractFloat}, Vector{Vector{<:AbstractFloat}}}   = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30],
                                             bulk_oxides         ::AbstractVector{<:AbstractString}  = ["SiO2","TiO2","Al2O3","FeO","MnO","MgO","CaO","Na2O","K2O","O","H2O"],
                                             sys_in              ::AbstractString                    = "mol",
+                                            phase               ::AbstractString                    = "bi",
                                             mineral_elements    ::AbstractVector{<:AbstractString}  = ["Si","Al","Ca","Mg","Fe","K","Na","Ti","O","Mn","H"],
                                             rand_seed           ::Union{Nothing, Integer}           = nothing)
 
@@ -70,6 +71,14 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
     if typeof(bulk_rock) <: Vector{<:AbstractFloat}
         bulk_rock = repeat([bulk_rock], nb_constraints)
     end
+
+    # generate the assemblage using MAGEMin_C for each constraint
+    MAGEMin_db = Initialize_MAGEMin("mp", solver=2, verbose=false)
+
+    out_vec = multi_point_minimization(P_GPa .* 10, T_C, MAGEMin_db, X=bulk_rock, Xoxides=bulk_oxides, sys_in=sys_in)
+    assemblage = [out.ph for out in out_vec]
+
+    Finalize_MAGEMin(MAGEMin_db)
     
     constraints_vec = Vector{Constraint}(undef, nb_constraints)
 
@@ -79,7 +88,7 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                         bulk_rock[i],
                                         bulk_oxides,
                                         sys_in,
-                                        nothing,
+                                        assemblage[i],
                                         nothing,
                                         mineral_elements)
     end

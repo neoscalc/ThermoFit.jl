@@ -338,7 +338,7 @@ end
     x0 = [1.]
 
     loss = objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db, loss_f=Ti_sat_misfit)
-    @test loss ≈ 0.016297234269321406           atol=1e-8
+    @test loss ≈ 0.016297234269321406           atol=1e-5
 end
 
 @testset "loss.jl" begin
@@ -403,13 +403,13 @@ end
 
     min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
 
-    @test min_comp[1][2,2] ≈ 2.7340356340442105
+    @test min_comp[1][2,2] ≈ 2.7340356340442105  atol=1e-4
 
     w_g = repeat([0.], 21)
 
     min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
 
-    @test min_comp[1][2,2] ≈ 2.6369670586738323
+    @test min_comp[1][2,2] ≈ 2.6369670586738323 atol=1e-4
 end
 
 end

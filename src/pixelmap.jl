@@ -26,7 +26,7 @@ function pixelmap(temperature_vec          ::Vector{Float64},
     # create vectors (P, T, mineral comp) for the calculation 
     p_vec = vec(pressure_matrix)
     t_vec = vec(temperature_matrix)
-    min_comp = zeros(Float64, length(p_vec), length(comp_variables_export))
+    min_comp = Array{Union{Float64, Missing}}(missing, length(p_vec), length(comp_variables_export))
     
     MAGEMin_db  = Initialize_MAGEMin(database, verbose=false, solver=2)
     
@@ -81,6 +81,7 @@ function pixelmap(temperature_vec          ::Vector{Float64},
     
     return mineral_composition, pressure_matrix, temperature_matrix
 end
+
 
 
 

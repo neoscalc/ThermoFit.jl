@@ -146,7 +146,9 @@ function Ti_in_Bt_Henry05(Ti_apfu, Mg_apfu, Fe_apfu)
     T_C_cubed = ((log.(Ti_22Ox_base) .- a .- c .* X_Mg.^3) ./ b)
     # if T_C_cubed is <0, Henry's thermometer is not defined, and the temperature is reported as missing
     # NOTE - This might cause a problem!
-    if T_C_cubed < 0
+    if ismissing(T_C_cubed)
+        T_C = missing
+    elseif T_C_cubed < 0
         T_C = missing
     else
         T_C = T_C_cubed .^(1/3)

@@ -4,11 +4,11 @@ authors = ["Philip Hartmeier & Pierre Lanari"]
 version = "0.0.1"
 
 [deps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 MAGEMin_C = "e5d170eb-415a-4524-987b-12f1bce1ddab"
 NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
 ProgressBars = "49802e3a-d2f1-5c88-81d8-b72133a6f568"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -17,6 +17,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
+CairoMakie = "0.13.4"
 OrderedCollections = "1.8.0"
 Random = "1.11.0"
 YAML = "0.4.12"

@@ -7,9 +7,7 @@ This module contains functions for the inversion of thermodynamic parameters usi
 - `JOB`
 ## Functions
 - `variable_optimised()`
-- `print_job()`
 - `inversion()`
-- `objective_function()`
 """
 
 
@@ -54,6 +52,10 @@ struct JOB{T1, T2, T3, T4, T5, T6}
     number_constraints_max    ::Union{T4, Nothing} 
     max_time_seconds          ::T4
     n_rand_strating_guesses   ::Union{T4, Nothing}
+
+    # Random seed, to be used uniformly within a single job
+    # (e.g., for reproducible random starting guesses)
+    random_seed               ::Union{T4, Nothing}
     
     # VERBOSITY
     verbose                   ::T5
@@ -74,6 +76,7 @@ struct JOB{T1, T2, T3, T4, T5, T6}
                  number_constraints_max     ::Union{T4, Nothing} = nothing,
                  max_time_seconds           ::T4                 = 300,
                  n_rand_strating_guesses    ::Union{T4, Nothing} = nothing,
+                 random_seed                ::Union{T4, Nothing} = nothing,
                  verbose                    ::T5                 = true) where {T1<:AbstractString, T2<:AbstractArray{String},
                                                                                 T3, T4<:Integer, T5<:Bool, T6}
 
@@ -171,6 +174,7 @@ struct JOB{T1, T2, T3, T4, T5, T6}
                                 number_constraints_max,
                                 max_time_seconds,
                                 n_rand_strating_guesses,
+                                random_seed,
                                 verbose)
     end
 end
@@ -193,49 +197,6 @@ function variable_optimised(variable::AbstractArray, lower_bounds::AbstractArray
     var_opti_coord = findall(mask)
 
     return var_opti, var_opti_bounds, var_opti_names, var_opti_coord, n
-end
-
-
-"""
-    print_job(job)
-Prints the job parameters.
-"""
-function print_job(job; io=stdout)
-    println(io"   -----------------------------------------------------")
-    println(io" - Margules to be optimized [name type start min max]:")
-    type_w = ["WH","WS","WV"]
-    for i = 1:length(job.w_names)
-        for j = 1:3
-            if job.w_upper_bounds[i,j] > job.w_lower_bounds[i,j]
-                println("    ", job.w_names[i],
-                        "  \t", type_w[j],
-                        "\t ",job. w_initial_values[i,j],
-                        "\t ", job.w_lower_bounds[i,j],
-                        " \t ", job.w_upper_bounds[i,j]) 
-            end
-        end
-    end
-    if !isnothing(job.g0_corr_endmembers)
-        println(io" - G0 corrections [name start min max]:")
-        for i = 1:length(job.g0_corr_endmembers)
-            if job.g0_corr_upper_bounds[i] > job.g0_corr_lower_bounds[i]
-                println("    ", job.g0_corr_endmembers[i],
-                        "  \t", job.g0_corr_initial_values[i],
-                        "\t ", job.g0_corr_lower_bounds[i],
-                        " \t ", job.g0_corr_upper_bounds[i])
-            end
-        end
-    end
-    println(io"   -----------------------------------------------------")
-    println(io" - Algorithm:                      ", job.algorithm)
-    println(io" - Maximum number of iterations:   ", job.number_iterations_max)
-    println(io" - Normalization:                  ", job.normalization)
-    println(io" - Maximum number of constraints:  ", job.number_constraints_max)
-end
-
-
-function print_results(; io=stdout)
-
 end
 
 

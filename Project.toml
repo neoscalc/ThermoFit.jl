@@ -5,6 +5,7 @@ version = "0.0.1"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 MAGEMin_C = "e5d170eb-415a-4524-987b-12f1bce1ddab"
 NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
@@ -19,6 +20,7 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 CairoMakie = "0.13.4"
+Dates = "1.11.0"
 OrderedCollections = "1.8.0"
 Random = "1.11.0"
 TOML = "1.0.3"

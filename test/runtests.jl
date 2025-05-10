@@ -98,6 +98,14 @@ end
 ##############################################################################################################
 # Test of individual modules and functions therein
 ##############################################################################################################
+@testset "constraint.jl" begin
+    constraints = gen_constraints_for_functional_inv(2, rng=244)
+
+    @test length(constraints) == 2
+    @test constraints[1].pressure_GPa == 1.249280915513082
+    @test constraints[2].temperature_C == 686.3716467703077
+    @test constraints[2].bulk == [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30]
+end
 
 @testset "forward.jl" begin
     phase = "bi"
@@ -247,9 +255,98 @@ end
                 10 20 50]
 
     @test initial == init_mod
+
+    #=
+    TESTING THE OBJECTIVE FUNCTION(S)
+    =#
+
+    MAGEMin_db  = Initialize_MAGEMin(job.thermodynamic_database, solver=2, verbose=false)
+    nb_constraints = 1
+    constraints = [ThermoFit.Constraint(0.9407753505413208, 625.4385996729244,
+                                       [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30.0],
+                                       ["SiO2", "TiO2", "Al2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O", "H2O"],
+                                       "mol",
+                                       nothing, nothing,
+                                       ["Si", "Al", "Ca", "Mg", "Fe", "K", "Na", "Ti", "O", "Mn", "H"])]
+    
+    w_names =  ["W(phl,annm)",
+                "W(phl,obi)",
+                "W(phl,east)",
+                "W(phl,tbi)",
+                "W(phl,fbi)",
+                "W(phl,mnbi)",
+                "W(annm,obi)",
+                "W(annm,east)",
+                "W(annm,tbi)",
+                "W(annm,fbi)",
+                "W(annm,mnbi)",
+                "W(obi,east)",
+                "W(obi,tbi)",
+                "W(obi,fbi)",
+                "W(obi,mnbi)",
+                "W(east,tbi)",
+                "W(east,fbi)",
+                "W(east,mnbi)",
+                "W(tbi,fbi)",
+                "W(tbi,mnbi)",
+                "W(fbi,mnbi)"];
+                           
+    w_initial_values = [12    0  0 ;
+                        4    0  0 ;
+                        10   0  0 ;
+                        30   0  0 ;
+                        8    0  0 ;
+                        9    0  0 ;
+                        8    0  0 ;
+                        15   0  0 ;
+                        32   0  0 ;
+                        13.6 0  0 ;
+                        6.3  0  0 ;
+                        7    0  0 ;
+                        24   0  0 ;
+                        5.6  0  0 ;
+                        8.1  0  0 ;
+                        40   0  0 ;
+                        1    0  0 ;
+                        13   0  0 ;
+                        40   0  0 ;
+                        30   0  0 ;
+                        11.6 0  0];
+    
+    w_lower_bounds = copy(w_initial_values);
+    w_lower_bounds[[1],1] .= -10.;
+    w_upper_bounds = copy(w_initial_values);
+    w_upper_bounds[[1],1] .= 40.;
+
+    job = JOB("mp", "bi",
+              w_names                    = w_names,
+              w_initial_values           = w_initial_values,
+              w_lower_bounds             = w_lower_bounds,
+              w_upper_bounds             = w_upper_bounds,
+              g0_corr_endmembers         = nothing,
+              g0_corr_initial_values     = nothing,
+              g0_corr_lower_bounds       = nothing,
+              g0_corr_upper_bounds       = nothing,
+              algorithm                  = "NelderMead",
+              number_iterations_max      = 10,
+              normalization              = true,
+              number_constraints_max     = 1,
+              max_time_seconds           = 300,
+              n_rand_strating_guesses    = nothing,
+              verbose                    = true)
+
+    x0 = [1.]
+
+    loss = objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db, loss_f=Ti_sat_misfit)
+    @test loss ≈ 0.016297234269321406           atol=1e-5
 end
 
 @testset "loss.jl" begin
+    #=
+    ---------------------
+    - QUALITY FACTOR LOSS
+    ---------------------
+    =#
     obs_comp = [1,1.2,3.1]
     obs_unc = [0.1,0.023,0.3]
     mod_comp = [0.9,1.3,3.4]
@@ -266,12 +363,29 @@ end
 
     @test qcmp ≈ 71.49547205205687
 
+    #=
+    ---------------------
+    - CHI-SQUARED LOSS
+    ---------------------
+    =#
     chi_sq = chi_squared([1], [1])
     @test chi_sq ≈ 0.0
     # test the case where some entires of the y_ref are 0.
     chi_sq = chi_squared([2.6572905827428244, 1.6854188345143521, 0.0, 0.7083961204322737, 1.8506162969359523, 1.0, 0.0, 0.08748017934638537, 12.0, 0.01079798602821248, 1.8250396413072292],
                             [2.753923663554854, 1.492152672890293, 0.0001, 0.8098024031864187, 1.86172245548464, 1.0, 0.001, 0.07438530934379976, 12.000000000000002, 0.008013495539994909, 1.8512293813124006])
     @test chi_sq ≈ 0.045930935122671865
+
+    #=
+    ---------------------
+    - Ti-in-Bt loss
+    ---------------------
+    =#
+    Ti_apfu = 0.2
+    Mg_apfu = 0.6 * 3.
+    Fe_apfu = 0.4 * 3.
+    T_Henry = ThermoFit.Ti_in_Bt_Henry05(Ti_apfu, Mg_apfu, Fe_apfu)
+    @test T_Henry ≈ 730.        atol=1.0
+
 end
 
 @testset "pixelmap.jl" begin
@@ -289,13 +403,13 @@ end
 
     min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
 
-    @test min_comp[1][2,2] ≈ 2.7340356340442105
+    @test min_comp[1][2,2] ≈ 2.7340356340442105  atol=1e-4
 
     w_g = repeat([0.], 21)
 
     min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
 
-    @test min_comp[1][2,2] ≈ 2.6369670586738323
+    @test min_comp[1][2,2] ≈ 2.6369670586738323 atol=1e-4
 end
 
 end

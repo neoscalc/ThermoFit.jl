@@ -9,6 +9,42 @@ This modules contains functions handling a forward pass trough MAGEMin's G-minim
 """
 
 
+function prepare_forward_call(variables_optim_local, MAGEMin_db, job, constraint)
+    # identify thread and acess the MAGEMin_db of the thread
+    id          = Threads.threadid()
+    # println("   Thread ",id," is working on constraint ",i," of ",nb_constraints)
+    gv          = MAGEMin_db.gv[id]
+    z_b         = MAGEMin_db.z_b[id]
+    DB          = MAGEMin_db.DB[id]
+    splx_data   = MAGEMin_db.splx_data[id]
+
+    # Calculate Margules (W-G) 
+    idx_margules    = findall(job.var_optim_type .== "W")
+    if !isempty(idx_margules)
+        w_optimised     = variables_optim_local[idx_margules]
+        P_kbar          = constraint.pressure_GPa * 10
+        T_K             = constraint.temperature_C + 273.15
+        w_matrix        = copy(job.w_initial_values)   # copy needed for multi_threading, so every thread has its own copy of w_all
+        w_coordinates   = job.margules_optim_coord
+            
+        w_g = calculate_w_g(w_optimised, P_kbar, T_K, w_matrix, w_coordinates)
+    else
+        w_g = nothing
+    end
+
+    # Calculate G0 corrections
+    idx_g0_coor    = findall(job.var_optim_type .== "G0_corr")
+    if !isempty(idx_g0_coor)
+        g0_corr = variables_optim_local[idx_g0_coor]
+        g0_corr_endmembers = job.g0_corr_endmembers
+    else
+        g0_corr = nothing
+        g0_corr_endmembers = nothing
+    end
+    
+    return constraint, gv, z_b, DB, splx_data, w_g, g0_corr, g0_corr_endmembers
+end
+
 """
     forward_call(phase, database, constraint, sys_in, gv, z_b, DB, splx_data; w_g = nothing, g0_corr_vec = nothing, g0_corr_em = nothing)
 

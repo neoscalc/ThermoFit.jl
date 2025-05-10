@@ -242,7 +242,7 @@ Performs the inversion of thermodynamic parameters using MAGEMin.
 - `job::JOB`:: JOB struct containing the inversion parameters
 - `constraints::Vector{Constraint}`: Vector of constraints
 """
-function inversion(job, constraints; loss_f::Function=loss_Qfactor)
+function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=false)
     # Unpack variables form JOB struct here
     var_optim               = job.var_optim
     norm                    = job.var_optim_norm
@@ -280,13 +280,19 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor)
 
     # PERFORM INVERSION: Check which algorithm to use
     if algorithm == "NelderMead"
-        res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
-                       x0, NelderMead(),
-                       Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+        if !func_rel
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                           x0, NelderMead(),
+                           Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+        else func_rel
+            res = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                           x0, NelderMead(),
+                           Optim.Options(time_limit = max_time_seconds, iterations = max_iterations, store_trace = true))
+        end
         return res, norm
 
     elseif algorithm == "NelderMead_random_guess"
-        # create a vector of randoom starting guesses for the 'var_optim' within the 'var_opti_bounds'
+        # create a vector of random starting guesses for the 'var_optim' within the 'var_opti_bounds'
         var_optim_starting_points = rand(length(var_optim), n_rand_strating_guesses) .* (optim_bounds[:,2] .- optim_bounds[:,1]) .+ optim_bounds[:,1]
         
         if job.normalization == true
@@ -298,19 +304,26 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor)
 
         # create a vector for res of the optimisation
         x_optim = zeros(size(x0))
-        residual_vec = zeros(n_rand_strating_guesses)
+        res_vec = zeros(n_rand_strating_guesses)
 
         # loop over the random starting points and perform the optimisation using NelderMead
         for i in ProgressBar(1:n_rand_strating_guesses)
-            res_i = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
-                             x0[:, i], NelderMead(),
-                             Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
-        
+            if !func_rel
+                res_i = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                                 x0[:, i], NelderMead(),
+                                 Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+
+            else func_rel
+                res_i = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                                 x0[:, i], NelderMead(),
+                                 Optim.Options(time_limit = max_time_seconds, iterations = max_iterations, store_trace = true))
+            end
+
             x_optim[:, i] = Optim.minimizer(res_i)
-            residual_vec[i] = Optim.minimum(res_i)
+            res_vec[i] = Optim.minimum(res_i)
         end
         
-        return x_optim, residual_vec, norm
+        return x_optim, res_vec, norm
 
     elseif job.algorithm == "ParticleSwarm"
         # check again job.normlization as ParticleSwarm struct is initialised with/without normalised bounds
@@ -375,42 +388,17 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     # MAIN LOOP: Calculate the loss over all constraints
     # --------------------------------------------------
     @threads for i in itr
-        # identify thread and acess the MAGEMin_db of the thread
-        id          = Threads.threadid()
-        # println("   Thread ",id," is working on constraint ",i," of ",nb_constraints)
-        gv          = MAGEMin_db.gv[id]
-        z_b         = MAGEMin_db.z_b[id]
-        DB          = MAGEMin_db.DB[id]
-        splx_data   = MAGEMin_db.splx_data[id]
+        constraint = constraints[i]
 
-        # Calculate Margules (W-G) 
-        idx_margules    = findall(job.var_optim_type .== "W")
-        if !isempty(idx_margules)
-            w_optimised     = variables_optim_local[idx_margules]
-            P_kbar          = constraints[i].pressure_GPa * 10
-            T_K             = constraints[i].temperature_C + 273.15
-            w_matrix        = copy(job.w_initial_values)   # copy needed for multi_threading, so every thread has its own copy of w_all
-            w_coordinates   = job.margules_optim_coord
-            
-            w_g = calculate_w_g(w_optimised, P_kbar, T_K, w_matrix, w_coordinates)
-        else
-            w_g = nothing
-        end
-
-        # Calculate G0 corrections
-        idx_g0_coor    = findall(job.var_optim_type .== "G0_corr")
-        if !isempty(idx_g0_coor)
-            g0_corr = variables_optim_local[idx_g0_coor]
-            g0_corr_endmembers = job.g0_corr_endmembers
-        else
-            g0_corr = nothing
-            g0_corr_endmembers = nothing
-        end
+        constraint, gv, z_b, DB, splx_data, w_g, g0_corr, g0_corr_endmembers = prepare_forward_call(variables_optim_local,
+                                                                                                    MAGEMin_db,
+                                                                                                    job, 
+                                                                                                    constraint)
 
         # call the forward module
         out = forward_call(job.phase_to_be_optimised,
                            job.thermodynamic_database,
-                           constraints[i],
+                           constraint,
                            gv, z_b, DB, splx_data,
                            w_g = w_g,
                            g0_corr_vec = g0_corr,
@@ -460,6 +448,95 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
         println("   Metrics = ", qcmp)
         println("   Fraction of constraints where the phase is predicted stable = ", frac_phase_present)
         println("   Loss composition = ", mean_loss)
+        println("\n   Optimied variables = ", variables_optim_local)
+    end
+
+    return residual
+end
+
+
+"""
+    objective_function(*args)
+
+Add an objective function Doc here.
+"""
+function objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Function=Ti_sat_misfit)
+    # Denormalise variables to optimise (Margules) for G-minimisation
+    if job.normalization == true
+        variables_optim_local = x0 .* job.var_optim_norm
+    else
+        variables_optim_local = x0
+    end
+
+    # Check if all parameters are within the bounds, if not return a very high residual:
+    for i = eachindex(variables_optim_local)
+        if variables_optim_local[i] < job.var_optim_bounds[i,1]
+            return 1e20
+        elseif variables_optim_local[i] > job.var_optim_bounds[i,2]
+            return 1e20
+        end
+    end
+
+    # Initiate vectors for the loss
+    loss_vec            = zeros(nb_constraints)
+    metric_vec          = Array{Union{Missing, Float64}}(undef, nb_constraints)
+
+    # Conditional definition of the iterator before the looping over the constraints,
+    # this way the verbosity can be toggled, by defining the iterator either with or
+    # without a progressbar
+    if job.verbose
+        println("\n-> New iteration <-")
+        itr = ProgressBar(1:nb_constraints)
+    else
+        itr = 1:nb_constraints
+    end
+
+    # --------------------------------------------------
+    # MAIN LOOP: Calculate the loss over all constraints
+    # --------------------------------------------------
+    @threads for i in itr
+        constraint = constraints[i]
+
+        constraint, gv, z_b, DB, splx_data, w_g, g0_corr, g0_corr_endmembers = prepare_forward_call(variables_optim_local,
+                                                                                                    MAGEMin_db,
+                                                                                                    job, 
+                                                                                                    constraint)
+
+        # call the forward module
+        out = forward_call(job.phase_to_be_optimised,
+                           job.thermodynamic_database,
+                           constraint,
+                           gv, z_b, DB, splx_data,
+                           w_g = w_g,
+                           g0_corr_vec = g0_corr,
+                           g0_corr_em = g0_corr_endmembers)
+
+        # --------------------------------
+        # Process the minimisation output:
+        # --------------------------------
+        # check if the mineral is predicted to be stable
+        if !(job.phase_to_be_optimised in out.ph)
+            # As the stabilty field of biotite should not be altered significantly by optimising
+            # any relation defined for its composition, "losing" biotite form the assemblage
+            # should be penalised by a large loss.
+            # A loss equivalent to a misfit between T_model and T_Henry of 400°C is taken as appropriate.
+            loss_vec[i] = 1e20
+        else
+            composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
+
+            loss_vec[i] = loss_f(composition_predicted, constraint.temperature_C, out.ph, out.elements)
+            metric_vec[i] = Ti_in_Bt_misfit(composition_predicted, constraint.temperature_C, out.elements)          
+        end
+
+    end
+
+    # calculate the mean loss over all constraints and the fraction of constraints where the phase optimised is predicted stable
+    residual = sum(loss_vec) / nb_constraints
+    metric   = sum(skipmissing(metric_vec)) / nb_constraints
+
+    if job.verbose
+        println("\n   Residual = ", residual)
+        println("   ΔT(model-Henry05) = ", metric)
         println("\n   Optimied variables = ", variables_optim_local)
     end
 

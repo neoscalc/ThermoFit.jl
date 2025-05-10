@@ -99,7 +99,7 @@ end
 # Test of individual modules and functions therein
 ##############################################################################################################
 @testset "constraint.jl" begin
-    constraints = gen_constraints_for_functional_inv(2, rand_seed=244)
+    constraints = gen_constraints_for_functional_inv(2, rng=244)
 
     @test length(constraints) == 2
     @test constraints[1].pressure_GPa == 1.249280915513082

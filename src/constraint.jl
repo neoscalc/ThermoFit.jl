@@ -51,17 +51,17 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                             P_MAX_GPa           ::AbstractFloat                     = 1.4,
                                             T_MIN_C             ::AbstractFloat                     = 450.,
                                             T_MAX_C             ::AbstractFloat                     = 700.,
-                                            bulk_rock           ::Union{Vector{<:AbstractFloat}, Vector{Vector{<:AbstractFloat}}}   = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30],
+                                            bulk_rock           ::VecOrMat                          = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30],
                                             bulk_oxides         ::AbstractVector{<:AbstractString}  = ["SiO2","TiO2","Al2O3","FeO","MnO","MgO","CaO","Na2O","K2O","O","H2O"],
                                             sys_in              ::AbstractString                    = "mol",
                                             phase               ::AbstractString                    = "bi",
                                             mineral_elements    ::AbstractVector{<:AbstractString}  = ["Si","Al","Ca","Mg","Fe","K","Na","Ti","O","Mn","H"],
-                                            rand_seed           ::Union{Nothing, Integer}           = nothing)
+                                            rng                 ::Union{Union{Nothing, Integer}, AbstractRNG} = nothing)
 
-    if !isnothing(rand_seed)
-        rng = Xoshiro(rand_seed)
-    else
+    if isnothing(rng)
         rng = Xoshiro()
+    elseif typeof(rng) <: Integer
+        rng = Xoshiro(rng)
     end
 
     P_GPa = rand(rng, nb_constraints) .* (P_MAX_GPa - P_MIN_GPa) .+ P_MIN_GPa

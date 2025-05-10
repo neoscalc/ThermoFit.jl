@@ -304,19 +304,26 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=fal
 
         # create a vector for res of the optimisation
         x_optim = zeros(size(x0))
-        residual_vec = zeros(n_rand_strating_guesses)
+        res_vec = zeros(n_rand_strating_guesses)
 
         # loop over the random starting points and perform the optimisation using NelderMead
         for i in ProgressBar(1:n_rand_strating_guesses)
-            res_i = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
-                             x0[:, i], NelderMead(),
-                             Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
-        
+            if !func_rel
+                res_i = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                                 x0[:, i], NelderMead(),
+                                 Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
+
+            else func_rel
+                res_i = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f),
+                                 x0[:, i], NelderMead(),
+                                 Optim.Options(time_limit = max_time_seconds, iterations = max_iterations, store_trace = true))
+            end
+
             x_optim[:, i] = Optim.minimizer(res_i)
-            residual_vec[i] = Optim.minimum(res_i)
+            res_vec[i] = Optim.minimum(res_i)
         end
         
-        return x_optim, residual_vec, norm
+        return x_optim, res_vec, norm
 
     elseif job.algorithm == "ParticleSwarm"
         # check again job.normlization as ParticleSwarm struct is initialised with/without normalised bounds

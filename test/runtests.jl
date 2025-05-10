@@ -337,7 +337,7 @@ end
 
     x0 = [1.]
 
-    loss = objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db, loss_f=Ti_sat_misfit)
+    loss = objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db, loss_f=Ti_sat_misfit, progress_log_io=nothing)
     @test loss ≈ 0.016297234269321406           atol=1e-5
 end
 

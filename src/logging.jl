@@ -3,7 +3,8 @@
     print_job(job)
 Prints the job parameters.
 """
-function print_job(job; io=stdout)
+function print_job(job  ::JOB;
+                   io   ::IO = stdout)
     date = Dates.format(Dates.now(), "dd.mm.yyyy HH:MM:SS")
 
     println(io, "-----------------------------------------------------")
@@ -54,12 +55,30 @@ function print_job(job; io=stdout)
 end
 
 
-function print_constraints( ; io=stdout)
+function print_constraints(nb_constraints   ::Number;
+                           constraints_yaml :: Union{Nothing, String},
+                           constraints_gen  ::Bool= false,
+                           P_MIN_GPa        ::Union{Nothing, AbstractFloat}=nothing,
+                           P_MAX_GPa        ::Union{Nothing, AbstractFloat}=nothing,
+                           T_MIN_C          ::Union{Nothing, AbstractFloat}=nothing,
+                           T_MAX_C          ::Union{Nothing, AbstractFloat}=nothing,
+                           bulk_rocks       ::Union{Nothing, String}=nothing,
+                           sys_in           ::Union{Nothing, String}=nothing,
+                           io               ::IO = stdout)
     println(io, "-----------------------------------------------------")
     println(io, "          CONSTRAINTS FOR THE INVERSION")
     println(io, "-----------------------------------------------------")
-    println(io, " - Number of constraints: ", )
-    println(io, " - SOME INFORMATION ABOUT THEM....: ")
+    println(io, " - Number of constraints available: ", nb_constraints)
+    println(io, " - Constraints file:                ", constraints_yaml)
+    println(io, " - Constraints generated:           ", constraints_gen)
+    println(io, "   using the following parameters:")
+    println(io, "       - P_min [GPa]:           ", P_MIN_GPa)
+    println(io, "       - P_max [GPa]:           ", P_MAX_GPa)
+    println(io, "       - T_min [°C]:            ", T_MIN_C)
+    println(io, "       - T_max [°C]:            ", T_MAX_C)
+    println(io, "       - Bulk rocks:            ", bulk_rocks)
+    println(io, "       - System in:             ", sys_in)
+    println(io, "\n")
     println(io, "-----------------------------------------------------")
 end
 

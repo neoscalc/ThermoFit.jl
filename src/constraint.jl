@@ -21,7 +21,7 @@ Reads constraints from a YAML file.
 ## Returns
 - `constraints_vec`: A vector of `Constraint` objects.
 """
-function read_constraints_from_yml(path::AbstractString)
+function read_constraints_from_yml(path::AbstractString; log_io::IO = stdout)
     constraints_vec = Vector{Constraint}()
     open(path) do io
         yaml_iter = YAML.load_all(io, dicttype=OrderedDict)
@@ -39,6 +39,10 @@ function read_constraints_from_yml(path::AbstractString)
             push!(constraints_vec, constraint)
         end
     end
+
+    print_constraints(length(constraints_vec),
+                      constraints_yaml=path,
+                      io=log_io)
     return constraints_vec
 end
 
@@ -56,7 +60,8 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                             sys_in              ::AbstractString                    = "mol",
                                             phase               ::AbstractString                    = "bi",
                                             mineral_elements    ::AbstractVector{<:AbstractString}  = ["Si","Al","Ca","Mg","Fe","K","Na","Ti","O","Mn","H"],
-                                            rng                 ::Union{Union{Nothing, Integer}, AbstractRNG} = nothing)
+                                            rng                 ::Union{Union{Nothing, Integer}, AbstractRNG} = nothing,
+                                            log_io              ::IO = stdout)
 
     if isnothing(rng)
         rng = Xoshiro()
@@ -105,6 +110,17 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                         mineral_composition_apfu[i],
                                         mineral_elements)
     end
+
+    print_constraints(nb_constraints,
+                      constraints_yaml = "generated",
+                      constraints_gen  = true,
+                      P_MIN_GPa        = P_MIN_GPa,
+                      P_MAX_GPa        = P_MAX_GPa,
+                      T_MIN_C          = T_MIN_C,
+                      T_MAX_C          = T_MAX_C,
+                      bulk_rocks       = "Not yet implemented...",  #//TODO this should be the file path from which the bulk was read
+                      sys_in           = sys_in,
+                      io               = log_io)
 
     return constraints_vec
 end

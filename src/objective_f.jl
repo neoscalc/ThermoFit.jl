@@ -192,6 +192,7 @@ function objective_function_func_relation(x0, job, constraints, nb_constraints, 
 
     if !isnothing(progress_log_io)
         println(progress_log_io, "$variables_optim_local, $(residual), $(metric)")
+        flush(progress_log_io)
     end
 
     if job.verbose

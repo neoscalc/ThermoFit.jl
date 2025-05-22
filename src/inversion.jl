@@ -211,7 +211,7 @@ Performs the inversion of thermodynamic parameters using MAGEMin.
 function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=false, log_convergence=false)
     if log_convergence
         date = Dates.format(Dates.now(), "yyyymmdd_HHMM")
-        progress_log_io = open("convergence_log_$date.csv", "a")
+        progress_log_io = open("convergence_log_$date.log", "w")
     else
         progress_log_io = nothing
     end
@@ -316,5 +316,8 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=fal
         println("Error: algorithm not recognised")
     end
 
+    if log_convergence
+        close(progress_log_io)
+    end
     Finalize_MAGEMin(MAGEMin_db)
 end

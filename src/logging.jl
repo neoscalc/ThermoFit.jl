@@ -43,6 +43,10 @@ function print_job(job  ::JOB;
             end
         end
     end
+    println(io, "\n")
+    println(io, "Variables to be optimised normalised?: ", job.normalization)
+    println(io, " - Normalisation factors: ", job.var_optim_norm)
+    println(io, "\n")
     println(io, "-----------------------------------------------------")
     println(io, " - Algorithm:                      ", job.algorithm)
     println(io, " - Maximum number of iterations:   ", job.number_iterations_max)
@@ -83,26 +87,62 @@ function print_constraints(nb_constraints   ::Number;
 end
 
 
-function print_results(; io=stdout)
+function print_results(optim_result     ::Optim.MultivariateOptimizationResults,
+                       job              ::JOB,
+                       loss_f           ::Function,
+                       metric_f         ::Function;
+                       io               ::IO = stdout)
     date = Dates.format(Dates.now(), "dd.mm.yyyy HH:MM:SS")
+
+    # check what terminated the inv run and construct "conv_status" string
+    converged = Optim.converged(optim_result)
+    conv_status = converged ? "Converged" : "Stopped by "
+    if Optim.iteration_limit_reached(optim_result)
+        conv_status *= "maximum number of $(Optim.iterations(optim_result)) iterations"
+    end
+        if Optim.f_increased(optim_result) && !(Optim.iteration_limit_reached(optim_result))
+        conv_status *= " objective increasing between iterations"
+    end
+    if Optim.time_run(optim_result) > Optim.time_limit(optim_result)
+        conv_status *= " time limit of $(Optim.time_limit(optim_result)) seconds"
+    end
+
+    # Compute the initial and final objective function values and metrics
+    # NOTE - can't be bothered atm to calculate as the objective function and metrics
+    # differ between the inversion and the inversion to a functional relation
+    # these data are already logged in the convergence log and can be found there
+    PLACEHOLDER = "\n These values can be found in the convergence log."
+
+    # Extract the optimised thermodynamic parameters
+    opt_params = Optim.minimizer(optim_result) .* job.var_optim_norm
+    opt_params_names = job.var_optim_names
+
+
 
     println(io, "-----------------------------------------------------")
     println(io, "             RESULTS OF THE INVERSION")
     println(io, "-----------------------------------------------------")
     println(io, " Run terminated on: ", date)
+    println(io, " Run terminated by: ", conv_status)
     println(io, "-----------------------------------------------------")
     println(io, " INVERSION RUN RESULTS:")
-    println(io, "- Algorithm:                      ", )
-    println(io, "- Number of iterations:           ", )
-    println(io, "- Run time (s):                  ", )
-    println(io, "- Stopped by:                   ", )
-    println(io, "- Initial objective function value: ", )
-    println(io, "- Final objective function value: ", )
-    println(io, "- Initial metric: ", )
-    println(io, "- Final metric: ", )
+    println(io, "- Algorithm:                      ", summary(optim_result))
+    println(io, "- Loss function:                  ", string(loss_f))
+    println(io, "- Metric function:                ", string(metric_f))
+    println(io, "- Number of iterations:           ", Optim.iterations(optim_result))
+    println(io, "- Run time (s):                  ", Optim.time_run(optim_result))
+    println(io, "- Initial objective function value: ", PLACEHOLDER)
+    println(io, "- Final objective function value:   ", PLACEHOLDER)
+    println(io, " Metrics:")
+    println(io, "     With objective function using P-T-X points:         Quality factor of the composition (Qcmp)")
+    println(io, "     With objective function using functional relation:  ΔT(model-Henry05)")
+    println(io, "- Initial metric: ", PLACEHOLDER)
+    println(io, "- Final metric:   ", PLACEHOLDER)
     println(io, "\n")
     println(io, "-----------------------------------------------------")
     println(io, " Optimised variables:")
-    println(io, " PRINT THE OPTIMISED VARIABLES HERE")
+    for i in eachindex(opt_params)
+        println(io, "    ", opt_params_names[i], " = ", opt_params[i])
+    end
     println(io, "-----------------------------------------------------")
 end

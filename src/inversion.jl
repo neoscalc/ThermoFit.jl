@@ -208,7 +208,7 @@ Performs the inversion of thermodynamic parameters using MAGEMin.
 - `job::JOB`:: JOB struct containing the inversion parameters
 - `constraints::Vector{Constraint}`: Vector of constraints
 """
-function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=false, log_convergence=false)
+function inversion(job, constraints; loss_f::Function=loss_Qfactor, metric_f::Function=quality_factor, func_rel=false, log_convergence=false, log_io::IO=stdout)
     if log_convergence
         date = Dates.format(Dates.now(), "yyyymmdd_HHMM")
         progress_log_io = open("convergence_log_$date.log", "w")
@@ -254,11 +254,11 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=fal
     # PERFORM INVERSION: Check which algorithm to use
     if algorithm == "NelderMead"
         if !func_rel
-            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, progress_log_io=progress_log_io),
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, metric_f=metric_f, progress_log_io=progress_log_io),
                            x0, NelderMead(),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
         else func_rel
-            res = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, progress_log_io=progress_log_io),
+            res = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, metric_f=metric_f, progress_log_io=progress_log_io),
                            x0, NelderMead(),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations, store_trace = true))
         end
@@ -282,12 +282,12 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=fal
         # loop over the random starting points and perform the optimisation using NelderMead
         for i in ProgressBar(1:n_rand_strating_guesses)
             if !func_rel
-                res_i = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, progress_log_io=progress_log_io),
+                res_i = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, metric_f=metric_f, progress_log_io=progress_log_io),
                                  x0[:, i], NelderMead(),
                                  Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))
 
             else func_rel
-                res_i = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, progress_log_io=progress_log_io),
+                res_i = optimize(x -> objective_function_func_relation(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, metric_f=metric_f, progress_log_io=progress_log_io),
                                  x0[:, i], NelderMead(),
                                  Optim.Options(time_limit = max_time_seconds, iterations = max_iterations, store_trace = true))
             end
@@ -301,11 +301,11 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=fal
     elseif job.algorithm == "ParticleSwarm"
         # check again job.normlization as ParticleSwarm struct is initialised with/without normalised bounds
         if job.normalization == true
-            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, progress_log_io=progress_log_io),
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, metric_f=metric_f, progress_log_io=progress_log_io),
                            x0, ParticleSwarm(; lower = optim_bounds_normed[:,1], upper = optim_bounds_normed[:,2]),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))  # n_particles = 0
         else
-            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, progress_log_io=progress_log_io),
+            res = optimize(x -> objective_function(x, job, constraints, nb_constraints, MAGEMin_db, loss_f=loss_f, metric_f=metric_f, progress_log_io=progress_log_io),
                            x0,
                            ParticleSwarm(; lower = optim_bounds[:,1], upper = optim_bounds[:,2]),
                            Optim.Options(time_limit = max_time_seconds, iterations = max_iterations))  # n_particles = 0
@@ -319,5 +319,6 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, func_rel=fal
     if log_convergence
         close(progress_log_io)
     end
+
     Finalize_MAGEMin(MAGEMin_db)
 end

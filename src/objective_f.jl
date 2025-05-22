@@ -4,7 +4,7 @@
 
 Add an objective function Doc here.
 """
-function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Function=loss_Qfactor, progress_log_io=progress_log_io)
+function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Function=loss_Qfactor, metric_f::Function=quality_factor, progress_log_io=progress_log_io)
     # Denormalise variables to optimise (Margules) for G-minimisation
     if job.normalization == true
         variables_optim_local = x0 .* job.var_optim_norm
@@ -23,7 +23,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
 
     # Initiate vectors for loss (to be minimised) and Q_cmp (used as metric that is printed during the inversion)
     loss_vec            = zeros(nb_constraints)
-    qcmp_vec            = zeros(nb_constraints)
+    metric_vec            = zeros(nb_constraints)
     phase_pred_stable   = zeros(nb_constraints)
 
     # Conditional definition of the iterator before the looping over the constraints,
@@ -62,7 +62,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
         # check if the mineral is predicted to be stable
         if !(job.phase_to_be_optimised in out.ph)
             # println("   Achtung: ",job.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure_GPa) kbar and T = $(constraints[i].temperature_C) C")
-            qcmp_vec[i] = 0
+            metric_vec[i] = 0
             loss_vec[i] = 100
         else
             # change 0 > 1 in the phase_pred_stable vector
@@ -81,7 +81,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
             # calculate loss: Default is loss_Qfactor: (100 - Q_cmp)
             loss_vec[i] = loss_f(composition_predicted, constraint_composition)
             # calculate Q_cmp as a metric beside the loss function
-            qcmp_vec[i] = quality_factor(constraint_composition, composition_predicted)            
+            metric_vec[i] = metric_f(constraint_composition, composition_predicted)            
         end
 
     end
@@ -93,7 +93,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     residual = .5 * (mean_loss + frac_phase_present)
 
     # Calculate the mean Q_cmp metric
-    qcmp = sum(qcmp_vec) / nb_constraints
+    metric = sum(metric_vec) / nb_constraints
 
     if !isnothing(progress_log_io)
         println(progress_log_io, "$variables_optim_local, $(residual), $(qcmp), $(frac_phase_present)")
@@ -101,7 +101,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
 
     if job.verbose
         println("\n   Residual = ", residual)
-        println("   Metrics = ", qcmp)
+        println("   Metrics = ", metric)
         println("   Fraction of constraints where the phase is predicted stable = ", frac_phase_present)
         println("   Loss composition = ", mean_loss)
         println("\n   Optimied variables = ", variables_optim_local)
@@ -116,7 +116,7 @@ end
 
 Add an objective function Doc here.
 """
-function objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Function=Ti_sat_misfit, progress_log_io=progress_log_io)
+function objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db; loss_f::Function=Ti_sat_misfit, metric_f::Function= Ti_in_Bt_misfit, progress_log_io=progress_log_io)
     # Denormalise variables to optimise (Margules) for G-minimisation
     if job.normalization == true
         variables_optim_local = x0 .* job.var_optim_norm
@@ -181,7 +181,7 @@ function objective_function_func_relation(x0, job, constraints, nb_constraints, 
             composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
 
             loss_vec[i] = loss_f(composition_predicted, constraint.temperature_C, out.ph, out.elements)
-            metric_vec[i] = Ti_in_Bt_misfit(composition_predicted, constraint.temperature_C, out.elements)          
+            metric_vec[i] = metric_f(composition_predicted, constraint.temperature_C, out.elements)          
         end
 
     end

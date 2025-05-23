@@ -80,7 +80,7 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                             P_MAX_GPa           ::AbstractFloat                     = 1.4,
                                             T_MIN_C             ::AbstractFloat                     = 450.,
                                             T_MAX_C             ::AbstractFloat                     = 700.,
-                                            bulk_rock           ::VecOrMat                          = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30],
+                                            bulk_rock           ::Union{AbstractVector, AbstractString} = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30],
                                             bulk_oxides         ::AbstractVector{<:AbstractString}  = ["SiO2","TiO2","Al2O3","FeO","MnO","MgO","CaO","Na2O","K2O","O","H2O"],
                                             sys_in              ::AbstractString                    = "mol",
                                             phase               ::AbstractString                    = "bi",
@@ -95,56 +95,56 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
         rng = Xoshiro(rng)
     end
 
-    P_GPa = rand(rng, nb_constraints) .* (P_MAX_GPa - P_MIN_GPa) .+ P_MIN_GPa
-    T_C   = rand(rng, nb_constraints) .* (T_MAX_C - T_MIN_C)     .+ T_MIN_C
-
-    # if only a single bulk vector is given, repeat this to use it for every constraint
-    if typeof(bulk_rock) <: Vector{<:AbstractFloat}
-        bulk_rock = repeat([bulk_rock], nb_constraints)
+    if typeof(bulk_rock) <: AbstractString
+        bulk_rocks, bulk_oxides = read_FPWMP_bulks(bulk_rock)
+        sys_in = "wt%"
     end
 
-    # generate the assemblage using MAGEMin_C for each constraint
     MAGEMin_db = Initialize_MAGEMin("mp", solver=2, verbose=false)
+    constraints_vec = Vector{Constraint}(undef, nb_constraints)
+    nb_constraints_generated = 0
+    while nb_constraints_generated < nb_constraints
+        P_GPa = rand(rng) .* (P_MAX_GPa - P_MIN_GPa) .+ P_MIN_GPa
+        T_C   = rand(rng) .* (T_MAX_C - T_MIN_C)     .+ T_MIN_C
 
-    out_vec = multi_point_minimization(P_GPa .* 10, T_C, MAGEMin_db, X=bulk_rock, Xoxides=bulk_oxides, sys_in=sys_in)
-    assemblage = [out.ph for out in out_vec]
+        # if a single bulk vector is given use this open
+        # if not, random sample from the loaded FPWMP_bulks 
+        if typeof(bulk_rock) <: AbstractString
+            bulk_rock = rand(rng, bulk_rocks)
+        end
 
-    mineral_composition_apfu = []
-    # generate the mineral_comp_apfu using MAGEMin_C for each constraint where ``phase`` is stable
-    for i in eachindex(assemblage)
-        if phase in assemblage[i]
-            comp_apfu = out_vec[i].SS_vec[findfirst(phase .== assemblage[i])].Comp_apfu
-            min_comp = OrderedDict{String, Any}()
-            min_comp[phase] = comp_apfu
-            append!(mineral_composition_apfu, [min_comp])
-        else
-            append!(mineral_composition_apfu, [nothing])
+        out = single_point_minimization(P_GPa .* 10, T_C, MAGEMin_db, X=bulk_rock, Xoxides=bulk_oxides, sys_in=sys_in)
+        assemblage = out.ph
+
+        if phase in assemblage
+            comp_apfu = out.SS_vec[findfirst(phase .== assemblage)].Comp_apfu
+            mineral_composition_apfu = OrderedDict{String, Any}()
+            mineral_composition_apfu[phase] = comp_apfu
+
+            i = nb_constraints_generated + 1
+            constraints_vec[i] = Constraint(P_GPa,
+                                            T_C,
+                                            bulk_rock,
+                                            bulk_oxides,
+                                            sys_in,
+                                            assemblage,
+                                            mineral_composition_apfu,
+                                            mineral_elements)
+            
+            nb_constraints_generated += 1
         end
     end
 
     Finalize_MAGEMin(MAGEMin_db)
-    
-    constraints_vec = Vector{Constraint}(undef, nb_constraints)
 
-    for i in eachindex(1:nb_constraints)
-        constraints_vec[i] = Constraint(P_GPa[i],
-                                        T_C[i],
-                                        bulk_rock[i],
-                                        bulk_oxides,
-                                        sys_in,
-                                        assemblage[i],
-                                        mineral_composition_apfu[i],
-                                        mineral_elements)
-    end
-
-    print_constraints(nb_constraints,                              #//TODO - this is the number of constraints generated, should be chnaged to the number of constraints where the phase of interest is stable.
+    print_constraints(nb_constraints,
                       constraints_yaml = "generated",
                       constraints_gen  = true,
                       P_MIN_GPa        = P_MIN_GPa,
                       P_MAX_GPa        = P_MAX_GPa,
                       T_MIN_C          = T_MIN_C,
                       T_MAX_C          = T_MAX_C,
-                      bulk_rocks       = "Not yet implemented...",  #//TODO this should be the file path from which the bulk was read
+                      bulk_rocks        = string(bulk_rock),
                       sys_in           = sys_in,
                       io               = log_io)
 

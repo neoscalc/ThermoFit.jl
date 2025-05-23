@@ -105,6 +105,15 @@ end
     @test constraints[1].pressure_GPa == 1.249280915513082
     @test constraints[2].temperature_C == 686.3716467703077
     @test constraints[2].bulk == [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30]
+
+    bulks, bulk_oxides = read_FPWMP_bulks("test_data/FPWMP_bulks_weight_percent.csv",
+                                          buffer_H2O = 30.,
+                                          project_from_apatite = true,
+                                          renormalise_anhydrous = true)
+
+    @test bulk_oxides  == ["SiO2", "TiO2", "Al2O3", "Fe2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "H2O"]
+    @test bulks[111]   ==  [63.50255471179057, 0.8578666123818603, 18.719875005904164, 0.0, 8.588878821585055, 0.07148888436515505, 3.2884886807971316, 0.6406634302009789, 0.5310602838554375, 3.7991235691196676, 30.0]
+    
 end
 
 @testset "forward.jl" begin
@@ -337,7 +346,7 @@ end
 
     x0 = [1.]
 
-    loss = objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db, loss_f=Ti_sat_misfit)
+    loss = objective_function_func_relation(x0, job, constraints, nb_constraints, MAGEMin_db, loss_f=Ti_sat_misfit, progress_log_io=nothing)
     @test loss ≈ 0.016297234269321406           atol=1e-5
 end
 

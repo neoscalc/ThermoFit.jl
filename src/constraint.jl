@@ -21,7 +21,7 @@ Reads constraints from a YAML file.
 ## Returns
 - `constraints_vec`: A vector of `Constraint` objects.
 """
-function read_constraints_from_yml(path::AbstractString)
+function read_constraints_from_yml(path::AbstractString; log_io::IO = stdout)
     constraints_vec = Vector{Constraint}()
     open(path) do io
         yaml_iter = YAML.load_all(io, dicttype=OrderedDict)
@@ -39,7 +39,36 @@ function read_constraints_from_yml(path::AbstractString)
             push!(constraints_vec, constraint)
         end
     end
+
+    print_constraints(length(constraints_vec),
+                      constraints_yaml=path,
+                      io=log_io)
     return constraints_vec
+end
+
+
+function save_constraints_to_yml(constraints_vec::Vector{Constraint}, path::AbstractString; DATABASE="mp")
+
+    doc_keywords = ["GEN DATA $(i)" for i in 1:length(constraints_vec)]
+
+    open(path, "w") do io
+        for (i, constraint) in enumerate(constraints_vec)
+            write(io, "---\n")
+            write(io, "# $(doc_keywords[i])\n")
+            YAML.write(io,
+                       OrderedDict(
+                            "pressure_kbar" => constraint.pressure_GPa * 10,
+                            "temperature_C" => constraint.temperature_C,
+                            "bulk" => constraint.bulk,
+                            "bulk_oxides" => constraint.bulk_oxides,
+                            "sys_in" => constraint.sys_in,
+                            "database" => DATABASE,
+                            "assemblage" => constraint.assemblage,
+                            "mineral_comp_apfu" => constraint.mineral_composition_apfu,
+                            "mineral_elements" => constraint.mineral_elements))
+        end
+    end
+    
 end
 
 """
@@ -51,12 +80,14 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                             P_MAX_GPa           ::AbstractFloat                     = 1.4,
                                             T_MIN_C             ::AbstractFloat                     = 450.,
                                             T_MAX_C             ::AbstractFloat                     = 700.,
-                                            bulk_rock           ::VecOrMat                          = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30],
+                                            bulk_rock           ::Union{AbstractVector, AbstractString} = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30],
                                             bulk_oxides         ::AbstractVector{<:AbstractString}  = ["SiO2","TiO2","Al2O3","FeO","MnO","MgO","CaO","Na2O","K2O","O","H2O"],
                                             sys_in              ::AbstractString                    = "mol",
                                             phase               ::AbstractString                    = "bi",
                                             mineral_elements    ::AbstractVector{<:AbstractString}  = ["Si","Al","Ca","Mg","Fe","K","Na","Ti","O","Mn","H"],
-                                            rng                 ::Union{Union{Nothing, Integer}, AbstractRNG} = nothing)
+                                            rng                 ::Union{Union{Nothing, Integer}, AbstractRNG} = nothing,
+                                            save_to_yaml        ::Bool                              = false,
+                                            log_io              ::IO = stdout)
 
     if isnothing(rng)
         rng = Xoshiro()
@@ -64,56 +95,124 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
         rng = Xoshiro(rng)
     end
 
-    P_GPa = rand(rng, nb_constraints) .* (P_MAX_GPa - P_MIN_GPa) .+ P_MIN_GPa
-    T_C   = rand(rng, nb_constraints) .* (T_MAX_C - T_MIN_C)     .+ T_MIN_C
-
-    # if only a single bulk vector is given, repeat this to use it for every constraint
-    if typeof(bulk_rock) <: Vector{<:AbstractFloat}
-        bulk_rock = repeat([bulk_rock], nb_constraints)
+    if typeof(bulk_rock) <: AbstractString
+        bulk_rocks, bulk_oxides = read_FPWMP_bulks(bulk_rock)
+        sys_in = "wt%"
     end
 
-    # generate the assemblage using MAGEMin_C for each constraint
     MAGEMin_db = Initialize_MAGEMin("mp", solver=2, verbose=false)
+    constraints_vec = Vector{Constraint}(undef, nb_constraints)
+    nb_constraints_generated = 0
+    while nb_constraints_generated < nb_constraints
+        P_GPa = rand(rng) .* (P_MAX_GPa - P_MIN_GPa) .+ P_MIN_GPa
+        T_C   = rand(rng) .* (T_MAX_C - T_MIN_C)     .+ T_MIN_C
 
-    out_vec = multi_point_minimization(P_GPa .* 10, T_C, MAGEMin_db, X=bulk_rock, Xoxides=bulk_oxides, sys_in=sys_in)
-    assemblage = [out.ph for out in out_vec]
+        # if a single bulk vector is given use this open
+        # if not, random sample from the loaded FPWMP_bulks 
+        if typeof(bulk_rock) <: AbstractString
+            bulk_rock = rand(rng, bulk_rocks)
+        end
 
-    mineral_composition_apfu = []
-    # generate the mineral_comp_apfu using MAGEMin_C for each constraint where ``phase`` is stable
-    for i in eachindex(assemblage)
-        if phase in assemblage[i]
-            comp_apfu = out_vec[i].SS_vec[findfirst(phase .== assemblage[i])].Comp_apfu
-            min_comp = OrderedDict{String, Any}()
-            min_comp[phase] = comp_apfu
-            append!(mineral_composition_apfu, [min_comp])
-        else
-            append!(mineral_composition_apfu, [nothing])
+        out = single_point_minimization(P_GPa .* 10, T_C, MAGEMin_db, X=bulk_rock, Xoxides=bulk_oxides, sys_in=sys_in)
+        assemblage = out.ph
+
+        if phase in assemblage
+            comp_apfu = out.SS_vec[findfirst(phase .== assemblage)].Comp_apfu
+            mineral_composition_apfu = OrderedDict{String, Any}()
+            mineral_composition_apfu[phase] = comp_apfu
+
+            i = nb_constraints_generated + 1
+            constraints_vec[i] = Constraint(P_GPa,
+                                            T_C,
+                                            bulk_rock,
+                                            bulk_oxides,
+                                            sys_in,
+                                            assemblage,
+                                            mineral_composition_apfu,
+                                            mineral_elements)
+            
+            nb_constraints_generated += 1
         end
     end
 
     Finalize_MAGEMin(MAGEMin_db)
-    
-    constraints_vec = Vector{Constraint}(undef, nb_constraints)
 
-    for i in eachindex(1:nb_constraints)
-        constraints_vec[i] = Constraint(P_GPa[i],
-                                        T_C[i],
-                                        bulk_rock[i],
-                                        bulk_oxides,
-                                        sys_in,
-                                        assemblage[i],
-                                        mineral_composition_apfu[i],
-                                        mineral_elements)
+    print_constraints(nb_constraints,
+                      constraints_yaml = "generated",
+                      constraints_gen  = true,
+                      P_MIN_GPa        = P_MIN_GPa,
+                      P_MAX_GPa        = P_MAX_GPa,
+                      T_MIN_C          = T_MIN_C,
+                      T_MAX_C          = T_MAX_C,
+                      bulk_rocks        = string(bulk_rock),
+                      sys_in           = sys_in,
+                      io               = log_io)
+
+    if save_to_yaml
+        date = Dates.format(Dates.now(), "yyyy-mm-dd_HHMM")
+        save_constraints_to_yml(constraints_vec, "generated_constraints_$date.yml")
     end
-
     return constraints_vec
 end
 
 
 """
-to do..
+Read bulk rock composition (in wt%) from a csv of the Forshaw & Pattison worldwide metapelitic whole rock database.
+
+Optionally, the bulk rock can be renormalised to 100 wt% and/or the P2O5 can be projected from apatite to correct the CaO content.
 """
-function read_bulks()
-    #//TODO - read fucntions to import bulks form the FPWMP database (read from a csv)
-    return bulk_vec
+function read_FPWMP_bulks(file_path             ::AbstractString;
+                          buffer_H2O            ::Float64 = 30.0,
+                          project_from_apatite  ::Bool = false,
+                          renormalise_anhydrous ::Bool = false)
+
+    bulks_df = CSV.read(file_path, DataFrame)
+
+    if project_from_apatite
+        bulks_df = DataFrame(map(ThermoFit.project_from_apatite, eachrow(bulks_df)))
+
+    else # drop P2O5
+        bulks_df = select(bulks_df, Not("P2O5"))
+    end
+
+    # replace missing values with 0
+    bulks_df = coalesce.(bulks_df, 0.0)
+
+    bulk = [collect(b) for b in eachrow(bulks_df)]
+    
+    if renormalise_anhydrous
+        # renormalise the anhydrous bulk to 100 wt%
+        bulk = [b ./ sum(b) .* 100 for b in bulk]
+    end
+
+    # add H2O to the bulk
+    for i in eachindex(bulk)
+        bulk[i] = vcat(bulk[i], buffer_H2O)
+    end
+
+    bulk_oxides = names(bulks_df)
+    bulk_oxides =vcat(bulk_oxides, "H2O")
+        
+    return bulk, bulk_oxides
+end
+
+function project_from_apatite(bulk  ::DataFrameRow)
+    MOLARMASS_P2O5 = 283.88
+    MOLARMASS_CaO  = 56.08
+    
+    CaO_apatite = 10/3 * bulk["P2O5"] * MOLARMASS_CaO / MOLARMASS_P2O5
+
+    # remove the CaO_apatite from the CaO
+    if ismissing(CaO_apatite)
+        CaO_apatite = 0    
+    elseif bulk["CaO"] > CaO_apatite
+        bulk["CaO"] -= CaO_apatite
+    else 
+        @warn "CaO_apatite is larger than the bulk CaO, setting it to 0"
+        bulk["CaO"] = 0
+    end
+
+    # remove the P2O5 from the bulk
+    bulk = bulk[Not("P2O5")]
+    return bulk
 end

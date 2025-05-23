@@ -162,8 +162,9 @@ Read bulk rock composition (in wt%) from a csv of the Forshaw & Pattison worldwi
 Optionally, the bulk rock can be renormalised to 100 wt% and/or the P2O5 can be projected from apatite to correct the CaO content.
 """
 function read_FPWMP_bulks(file_path             ::AbstractString;
+                          buffer_H2O            ::Float64 = 30.0,
                           project_from_apatite  ::Bool = false,
-                          renormalise           ::Bool = false)
+                          renormalise_anhydrous ::Bool = false)
 
     bulks_df = CSV.read(file_path, DataFrame)
 
@@ -179,13 +180,19 @@ function read_FPWMP_bulks(file_path             ::AbstractString;
 
     bulk = [collect(b) for b in eachrow(bulks_df)]
     
-    if renormalise
-        # renormalise the bulk to 100 wt%
+    if renormalise_anhydrous
+        # renormalise the anhydrous bulk to 100 wt%
         bulk = [b ./ sum(b) .* 100 for b in bulk]
     end
 
-    bulk_oxides = names(bulks_df)
+    # add H2O to the bulk
+    for i in eachindex(bulk)
+        bulk[i] = vcat(bulk[i], buffer_H2O)
+    end
 
+    bulk_oxides = names(bulks_df)
+    bulk_oxides =vcat(bulk_oxides, "H2O")
+        
     return bulk, bulk_oxides
 end
 

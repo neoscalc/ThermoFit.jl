@@ -6,6 +6,8 @@ using Reexport: @reexport
 using Optim
 using ProgressBars
 using OrderedCollections
+using CSV
+using DataFrames
 using YAML
 
 @reexport using MAGEMin_C

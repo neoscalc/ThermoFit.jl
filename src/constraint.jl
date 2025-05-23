@@ -46,6 +46,31 @@ function read_constraints_from_yml(path::AbstractString; log_io::IO = stdout)
     return constraints_vec
 end
 
+
+function save_constraints_to_yml(constraints_vec::Vector{Constraint}, path::AbstractString; DATABASE="mp")
+
+    doc_keywords = ["GEN DATA $(i)" for i in 1:length(constraints_vec)]
+
+    open(path, "w") do io
+        for (i, constraint) in enumerate(constraints_vec)
+            write(io, "---\n")
+            write(io, "# $(doc_keywords[i])\n")
+            YAML.write(io,
+                       OrderedDict(
+                            "pressure_kbar" => constraint.pressure_GPa * 10,
+                            "temperature_C" => constraint.temperature_C,
+                            "bulk" => constraint.bulk,
+                            "bulk_oxides" => constraint.bulk_oxides,
+                            "sys_in" => constraint.sys_in,
+                            "database" => DATABASE,
+                            "assemblage" => constraint.assemblage,
+                            "mineral_comp_apfu" => constraint.mineral_composition_apfu,
+                            "mineral_elements" => constraint.mineral_elements))
+        end
+    end
+    
+end
+
 """
 Generate constraints of the form P-T-Xbulk, that can be used when inverting a misfit to a functional relation (e.g., Ti-saturation in biotite)
 In that case no mineral composition is needed, as the results of PEM are simply compared to a given functional relation.
@@ -61,6 +86,7 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                             phase               ::AbstractString                    = "bi",
                                             mineral_elements    ::AbstractVector{<:AbstractString}  = ["Si","Al","Ca","Mg","Fe","K","Na","Ti","O","Mn","H"],
                                             rng                 ::Union{Union{Nothing, Integer}, AbstractRNG} = nothing,
+                                            save_to_yaml        ::Bool                              = false,
                                             log_io              ::IO = stdout)
 
     if isnothing(rng)
@@ -111,7 +137,7 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                                         mineral_elements)
     end
 
-    print_constraints(nb_constraints,
+    print_constraints(nb_constraints,                              #//TODO - this is the number of constraints generated, should be chnaged to the number of constraints where the phase of interest is stable.
                       constraints_yaml = "generated",
                       constraints_gen  = true,
                       P_MIN_GPa        = P_MIN_GPa,
@@ -122,14 +148,64 @@ function gen_constraints_for_functional_inv(nb_constraints      ::Number;
                       sys_in           = sys_in,
                       io               = log_io)
 
+    if save_to_yaml
+        date = Dates.format(Dates.now(), "yyyy-mm-dd_HHMM")
+        save_constraints_to_yml(constraints_vec, "generated_constraints_$date.yml")
+    end
     return constraints_vec
 end
 
 
 """
-to do..
+Read bulk rock composition (in wt%) from a csv of the Forshaw & Pattison worldwide metapelitic whole rock database.
+
+Optionally, the bulk rock can be renormalised to 100 wt% and/or the P2O5 can be projected from apatite to correct the CaO content.
 """
-function read_bulks()
-    #//TODO - read fucntions to import bulks form the FPWMP database (read from a csv)
-    return bulk_vec
+function read_FPWMP_bulks(file_path             ::AbstractString;
+                          project_from_apatite  ::Bool = false,
+                          renormalise           ::Bool = false)
+
+    bulks_df = CSV.read(file_path, DataFrame)
+
+    if project_from_apatite
+        bulks_df = DataFrame(map(ThermoFit.project_from_apatite, eachrow(bulks_df)))
+
+    else # drop P2O5
+        bulks_df = select(bulks_df, Not("P2O5"))
+    end
+
+    # replace missing values with 0
+    bulks_df = coalesce.(bulks_df, 0.0)
+
+    bulk = [collect(b) for b in eachrow(bulks_df)]
+    
+    if renormalise
+        # renormalise the bulk to 100 wt%
+        bulk = [b ./ sum(b) .* 100 for b in bulk]
+    end
+
+    bulk_oxides = names(bulks_df)
+
+    return bulk, bulk_oxides
+end
+
+function project_from_apatite(bulk  ::DataFrameRow)
+    MOLARMASS_P2O5 = 283.88
+    MOLARMASS_CaO  = 56.08
+    
+    CaO_apatite = 10/3 * bulk["P2O5"] * MOLARMASS_CaO / MOLARMASS_P2O5
+
+    # remove the CaO_apatite from the CaO
+    if ismissing(CaO_apatite)
+        CaO_apatite = 0    
+    elseif bulk["CaO"] > CaO_apatite
+        bulk["CaO"] -= CaO_apatite
+    else 
+        @warn "CaO_apatite is larger than the bulk CaO, setting it to 0"
+        bulk["CaO"] = 0
+    end
+
+    # remove the P2O5 from the bulk
+    bulk = bulk[Not("P2O5")]
+    return bulk
 end

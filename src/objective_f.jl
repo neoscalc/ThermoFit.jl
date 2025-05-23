@@ -63,7 +63,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
         if !(job.phase_to_be_optimised in out.ph)
             # println("   Achtung: ",job.phase_to_be_optimised," not predicted to be stable at P = $(constraints[i].pressure_GPa) kbar and T = $(constraints[i].temperature_C) C")
             metric_vec[i] = 0
-            loss_vec[i] = 100
+            loss_vec[i] = 100       #NOTE - Should be improved to consider if phase is stable and should not be (allow to pass "negative constaints"?)
         else
             # change 0 > 1 in the phase_pred_stable vector
             phase_pred_stable[i] = 1
@@ -176,7 +176,7 @@ function objective_function_func_relation(x0, job, constraints, nb_constraints, 
             # any relation defined for its composition, "losing" biotite form the assemblage
             # should be penalised by a large loss.
             # A loss equivalent to a misfit between T_model and T_Henry of 400°C is taken as appropriate.
-            loss_vec[i] = 1e20
+            loss_vec[i] = 1e20 #NOTE - Should be improved to consider if phase is stable and should not be (allow to pass "negative constaints"?)
         else
             composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
 

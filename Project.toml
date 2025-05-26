@@ -23,9 +23,18 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 [compat]
 CSV = "0.10.15"
 CairoMakie = "0.13.4"
+Coverage = "1.6.1"
 DataFrames = "1.7.0"
 Dates = "1.11.0"
+MAGEMin_C = "<1.8.8"
 OrderedCollections = "1.8.0"
 Random = "1.11.0"
 TOML = "1.0.3"
 YAML = "0.4.12"
+
+[extras]
+Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "Coverage"]

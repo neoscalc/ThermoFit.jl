@@ -1,6 +1,7 @@
 # ThermoFit
 
 [![Tests](https://github.com/neoscalc/ThermoFit.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/neoscalc/ThermoFit.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/neoscalc/ThermoFit.jl/graph/badge.svg?token=T32ZSFFJ5I)](https://codecov.io/gh/neoscalc/ThermoFit.jl)
 
 ThermoFit is a Julia project for inversion to obtain thermodynamic properties of petrological phases.
 

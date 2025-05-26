@@ -265,7 +265,7 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, metric_f::Fu
         end
 
         print_results(res, job, loss_f, metric_f, io=log_io)
-
+        flush(log_io)
         return res, norm
 
     elseif algorithm == "NelderMead_random_guess"
@@ -313,6 +313,7 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, metric_f::Fu
             # log print_result after each random starting guess
             println(log_io, ">> Results for random starting guess $i:")
             print_results(res_i, job, loss_f, metric_f, io=log_io)
+            flush(log_io)
         end
         
         return x_optim, res_vec, norm
@@ -338,7 +339,7 @@ function inversion(job, constraints; loss_f::Function=loss_Qfactor, metric_f::Fu
         end
 
         print_results(res, job, loss_f, metric_f, io=log_io)
-
+        flush(log_io)
         return res, norm
     else
         res = 1e20

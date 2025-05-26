@@ -49,7 +49,8 @@ function pixelmap(temperature_vec          ::Vector{Float64},
         ss_idx = findfirst(ss_names .== phase)
         if !isnothing(w_g)
             unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
-        elseif !isnothing(G_0)
+        end
+        if !isnothing(G_0)
             g_base = unsafe_wrap(Vector{Float64}, ss_struct[ss_idx].gbase, ss_struct[ss_idx].n_em)
             g_base .+= G_0
             unsafe_copyto!(ss_struct[ss_idx].gbase, pointer(g_base), ss_struct[ss_idx].n_em)
@@ -81,33 +82,3 @@ function pixelmap(temperature_vec          ::Vector{Float64},
     
     return mineral_composition, pressure_matrix, temperature_matrix
 end
-
-
-
-
-
-
-# using ProgressBars
-# using MAGEMin_C
-# using .Threads
-
-
-# temperature_vec = Vector(550.:10:580)
-# pressure_vec = Vector(4.:0.5:5.5)
-# comp_variables_export = ["Si", "Fe", "Mg"]
-# database = "mp"
-# w_g = repeat([0.], 21)
-# G_0 = [0., 0., 0., 0., 0., 0., 0.]
-# phase = "bi"
-# # bulk from White et al. 2014b (Fig. 8)
-# bulk = [64.578, 13.651, 1.586, 5.529, 8.025, 2.943, 2.000, 0.907, 0.175, 40.]
-# bulk_oxides = ["SiO2", "Al2O3", "CaO", "MgO", "FeO", "K2O", "Na2O", "TiO2", "MnO", "H2O"]
-# sys_in = "mol"
-
-
-# min_comp =pixelmap_calc(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
-
-# min_comp[1][2,2]
-
-# using Plots
-# heatmap(min_comp[2], c=:viridis, xlabel="Temperature", ylabel="Pressure", xticks=(1:length(temperature_vec), temperature_vec), yticks=(1:length(pressure_vec), pressure_vec), clims=(0.5, 2.5))

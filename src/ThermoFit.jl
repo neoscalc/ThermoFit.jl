@@ -9,6 +9,8 @@ using OrderedCollections
 using CSV
 using DataFrames
 using YAML
+using CairoMakie
+
 
 @reexport using MAGEMin_C
 
@@ -26,6 +28,6 @@ export JOB, print_job, variable_optimised, inversion
 export print_job, print_constraints, print_results
 export objective_function, objective_function_func_relation
 export loss_Qfactor, quality_factor, bingo_generate_fake_uncertainties, chi_squared, Ti_in_Bt_misfit, Ti_sat_misfit
-export pixelmap
+export pixelmap, pixmap_misfit_Ti_in_Bt_temperatures, pixmap_misfit_Ti_in_Bt_temperatures, pixmap_phase_comp_og_v_mod
 
 end

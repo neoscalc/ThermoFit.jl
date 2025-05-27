@@ -419,6 +419,13 @@ end
     min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
 
     @test min_comp[1][2,2] ≈ 2.6369670586738323 atol=1e-3
+
+    w_g = repeat([0.], 21)
+    G_0 = [2., 0., 0., 0., 0., 0., 0.]
+    min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
+
+    @test min_comp[1][2,2] ≈ 2.6265499111832478 atol=1e-3
+
 end
 
 end

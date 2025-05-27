@@ -96,7 +96,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     metric = sum(metric_vec) / nb_constraints
 
     if !isnothing(progress_log_io)
-        println(progress_log_io, "$variables_optim_local, $(residual), $(qcmp), $(frac_phase_present)")
+        println(progress_log_io, "$variables_optim_local; $(residual); $(qcmp); $(frac_phase_present)")
     end
 
     if job.verbose
@@ -191,7 +191,7 @@ function objective_function_func_relation(x0, job, constraints, nb_constraints, 
     metric   = sum(skipmissing(metric_vec)) / nb_constraints
 
     if !isnothing(progress_log_io)
-        println(progress_log_io, "$variables_optim_local, $(residual), $(metric)")
+        println(progress_log_io, "$variables_optim_local; $(residual); $(metric)")
         flush(progress_log_io)
     end
 

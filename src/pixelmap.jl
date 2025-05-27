@@ -3,8 +3,8 @@
     pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, phase, database, w_g, sys_in)
 Pixelmap-like caluclation using MAGEMin for quick visualisation of the effect of altered W_G and G0.
 """
-function pixelmap(temperature_vec          ::Vector{Float64},
-                  pressure_vec             ::Vector{Float64},
+function pixelmap(temperature_C_vec        ::Vector{Float64},
+                  pressure_kbar_vec        ::Vector{Float64},
                   bulk                     ::Vector{Float64},
                   bulk_oxides              ::AbstractVector{String},
                   database                 ::String,
@@ -15,12 +15,12 @@ function pixelmap(temperature_vec          ::Vector{Float64},
                   G_0                      ::Union{Vector{Float64}, Nothing} = nothing)
 
     # create and populate matrices for P and T
-    pressure_matrix    = zeros(Float64, length(pressure_vec), length(temperature_vec))
-    temperature_matrix = zeros(Float64, length(pressure_vec), length(temperature_vec))
+    pressure_matrix    = zeros(Float64, length(pressure_kbar_vec), length(temperature_C_vec))
+    temperature_matrix = zeros(Float64, length(pressure_kbar_vec), length(temperature_C_vec))
     
     for i in axes(pressure_matrix, 1), j in axes(pressure_matrix, 2)
-        pressure_matrix[i, j] = pressure_vec[i]
-        temperature_matrix[i, j] = temperature_vec[j]
+        pressure_matrix[i, j] = pressure_kbar_vec[i]
+        temperature_matrix[i, j] = temperature_C_vec[j]
     end
     
     # create vectors (P, T, mineral comp) for the calculation 
@@ -49,7 +49,8 @@ function pixelmap(temperature_vec          ::Vector{Float64},
         ss_idx = findfirst(ss_names .== phase)
         if !isnothing(w_g)
             unsafe_copyto!(ss_struct[ss_idx].W, pointer(w_g), ss_struct[ss_idx].n_w)
-        elseif !isnothing(G_0)
+        end
+        if !isnothing(G_0)
             g_base = unsafe_wrap(Vector{Float64}, ss_struct[ss_idx].gbase, ss_struct[ss_idx].n_em)
             g_base .+= G_0
             unsafe_copyto!(ss_struct[ss_idx].gbase, pointer(g_base), ss_struct[ss_idx].n_em)
@@ -83,31 +84,164 @@ function pixelmap(temperature_vec          ::Vector{Float64},
 end
 
 
+"""
+Plot figure with pixel maps of Ti-in-Bt temperatures and ϕ(Ti-in-Bt - Tmodel) misfit comparing original and modified thermodynamic parameters.
+"""
+function pixmap_misfit_Ti_in_Bt_temperatures(file_path                ::String;
+                                             w_g                      ::Union{Vector{Float64}, Nothing} = nothing,
+                                             G_0                      ::Union{Vector{Float64}, Nothing} = nothing,
+                                             temperature_C_vec        ::Vector{Float64}         = Vector(450.:25:750.),
+                                             pressure_kbar_vec        ::Vector{Float64}         = Vector(2.:0.5:14.),
+                                             bulk                     ::Vector{Float64}         = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30.0],
+                                             bulk_oxides              ::AbstractVector{String}  = ["SiO2", "TiO2", "Al2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O", "H2O"],
+                                             database                 ::String                  = "mp",
+                                             sys_in                   ::String                  = "mol",
+                                             comp_variables_export    ::AbstractVector{String}  = ["Si", "Al", "Ca", "Mg", "Fe", "K", "Na", "Ti", "O", "Mn", "H"],
+                                             phase                    ::String                  = "bi",
+                                             colormap_Tmap            ::String                  = "berlin",
+                                             colormap_misfitmap       ::String                  = "bam")
+
+    # pixel map with the modified W_G and G0
+    pxm, p_, t_ = pixelmap(temperature_C_vec,
+                           pressure_kbar_vec,
+                           bulk,
+                           bulk_oxides,
+                           database,
+                           sys_in,
+                           comp_variables_export,
+                           phase,
+                           w_g = w_g,
+                           G_0 = G_0)
+
+    # pixel map with the original W_G and G0
+    pxo, p_, t_ = pixelmap(temperature_C_vec,
+                           pressure_kbar_vec,
+                           bulk,
+                           bulk_oxides,
+                           database,
+                           sys_in,
+                           comp_variables_export,
+                           phase)
+
+    # predict temperature using Ti-in-Bt thermometry (Henry et al. 2005)
+    pxm_TBt05 = ThermoFit.Ti_in_Bt_Henry05.(pxm[findfirst("Ti" .== comp_variables_export)], pxm[findfirst("Mg" .== comp_variables_export)], pxm[findfirst("Fe" .== comp_variables_export)])
+    pxo_TBt05 = ThermoFit.Ti_in_Bt_Henry05.(pxo[findfirst("Ti" .== comp_variables_export)], pxo[findfirst("Mg" .== comp_variables_export)], pxo[findfirst("Fe" .== comp_variables_export)])
+    # calculate msifit between Ti-in-Bt temperature and the temperature used for PEM
+    misfit_o = pxo_TBt05 .- t_
+    misfit_m = pxm_TBt05 .- t_
+
+    # extrema are calculated for the colorrange in the plotting
+    extrema_pxo_TBt05 = extrema(skipmissing(pxo_TBt05))
+    extrema_pxm_TBt05 = extrema(skipmissing(pxm_TBt05))
+
+    clims = (min(first(extrema_pxo_TBt05), first(extrema_pxm_TBt05)),
+             max(last(extrema_pxo_TBt05), last(extrema_pxo_TBt05)))
+
+    # center the clims_misfit so that they are symmetric around zero otherwise,
+    # the relatively small/rare overestimation of temps by Henry's are visually over represented
+    extrema_misfit = extrema(skipmissing(vcat(misfit_o, misfit_m)))
+
+    clims_misfit = (-max(abs(first(extrema_misfit)), abs(last(extrema_misfit))),
+                    max(abs(first(extrema_misfit)), abs(last(extrema_misfit))))
+
+    fig = Figure(size=(800, 800))
+
+    ax1 = Axis(fig[1, 1])
+    ax1.title = "T [°C] Ti-in-Bt - original Ws"
+    ax1.aspect = 1.0
+
+    hm = heatmap!(ax1, temperature_C_vec, pressure_kbar_vec, pxo_TBt05', colormap=colormap_Tmap, colorrange=clims)
+    Colorbar(fig[1, 2], colormap=colormap_Tmap, colorrange=clims)
+
+    ax1 = Axis(fig[1, 3])
+    ax1.title = "ΔT(Ti-in-Bt - Tmodel) - original Ws"
+    ax1.aspect = 1.0
+
+    hm = heatmap!(ax1, temperature_C_vec, pressure_kbar_vec, misfit_o', colormap=colormap_misfitmap, colorrange=clims_misfit)
+    Colorbar(fig[1, 4], colormap=colormap_misfitmap, colorrange=clims_misfit)
+
+    ax2 = Axis(fig[2, 1])
+    ax2.title = "T [°C] Ti-in-Bt - modified Ws"
+    ax2.aspect = 1.0
+
+    hm = heatmap!(ax2, temperature_C_vec, pressure_kbar_vec, pxm_TBt05', colormap=colormap_Tmap, colorrange=clims)
+    Colorbar(fig[2, 2], colormap=colormap_Tmap, colorrange=clims)
+
+    ax2 = Axis(fig[2, 3])
+    ax2.title = "ΔT(Ti-in-Bt - Tmodel) - modified Ws"
+    ax2.aspect = 1.0
+
+    hm = heatmap!(ax2, temperature_C_vec, pressure_kbar_vec, misfit_m', colormap=colormap_misfitmap, colorrange=clims_misfit)
+    Colorbar(fig[2, 4], colormap=colormap_misfitmap, colorrange=clims_misfit)
+
+    save(file_path, fig)
+end
 
 
+"""
+Plot pixel maps of each element in <PHASE> comparing original and modified thermodynamic parameters.
+"""
+function pixmap_phase_comp_og_v_mod(file_path                ::String;
+                                    w_g                      ::Union{Vector{Float64}, Nothing} = nothing,
+                                    G_0                      ::Union{Vector{Float64}, Nothing} = nothing,
+                                    temperature_C_vec        ::Vector{Float64}         = Vector(450.:25:750.),
+                                    pressure_kbar_vec        ::Vector{Float64}         = Vector(2.:0.5:14.),
+                                    bulk                     ::Vector{Float64}         = [70.999, 0.758, 12.805, 6.342, 0.075, 3.978, 0.771, 1.481, 2.7895, 0.72933, 30.0],
+                                    bulk_oxides              ::AbstractVector{String}  = ["SiO2", "TiO2", "Al2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "O", "H2O"],
+                                    database                 ::String                  = "mp",
+                                    sys_in                   ::String                  = "mol",
+                                    comp_variables_export    ::AbstractVector{String}  = ["Si", "Al", "Ca", "Mg", "Fe", "K", "Na", "Ti", "O", "Mn", "H"],
+                                    phase                    ::String                  = "bi",
+                                    colormap                 ::String                  = "batlow")
 
 
-# using ProgressBars
-# using MAGEMin_C
-# using .Threads
+    # pixel map with the modified W_G and G0
+    pxm, p_, t_ = pixelmap(temperature_C_vec,
+                           pressure_kbar_vec,
+                           bulk,
+                           bulk_oxides,
+                           database,
+                           sys_in,
+                           comp_variables_export,
+                           phase,
+                           w_g = w_g,
+                           G_0 = G_0)
+
+    # pixel map with the original W_G and G0
+    pxo, p_, t_ = pixelmap(temperature_C_vec,
+                           pressure_kbar_vec,
+                           bulk,
+                           bulk_oxides,
+                           database,
+                           sys_in,
+                           comp_variables_export,
+                           phase)
+    # extrema are calculated for the colorrange in the plotting
+    extrema_pxo = [extrema(skipmissing(x)) for x in pxo]
+    extrema_pxm = [extrema(skipmissing(x)) for x in pxm]
+
+    fig = Figure(size=(800, length(comp_variables_export)*400))
+    for i in eachindex(comp_variables_export)
+         ax = Axis(fig[i, 1])
+
+         # define clims
+         clims = (min(first(extrema_pxo[i]), first(extrema_pxm[i])),
+                  max(last(extrema_pxo[i]), last(extrema_pxm[i]))+ 0.001)  # add small offset to avoid (0,0)
 
 
-# temperature_vec = Vector(550.:10:580)
-# pressure_vec = Vector(4.:0.5:5.5)
-# comp_variables_export = ["Si", "Fe", "Mg"]
-# database = "mp"
-# w_g = repeat([0.], 21)
-# G_0 = [0., 0., 0., 0., 0., 0., 0.]
-# phase = "bi"
-# # bulk from White et al. 2014b (Fig. 8)
-# bulk = [64.578, 13.651, 1.586, 5.529, 8.025, 2.943, 2.000, 0.907, 0.175, 40.]
-# bulk_oxides = ["SiO2", "Al2O3", "CaO", "MgO", "FeO", "K2O", "Na2O", "TiO2", "MnO", "H2O"]
-# sys_in = "mol"
+         e = comp_variables_export[i]
+         ax.title = "$e in Bi [apfu] - original Ws"
+         ax.aspect = 1.0
+         hm = heatmap!(ax, temperature_C_vec, pressure_kbar_vec, pxo[i]', colormap=colormap, colorrange=clims)
 
+         ax = Axis(fig[i, 2])
 
-# min_comp =pixelmap_calc(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
+         e = comp_variables_export[i]
+         ax.title = "$e in Bi [apfu] - modified Ws"
+         ax.aspect = 1.0
+         hm = heatmap!(ax, temperature_C_vec, pressure_kbar_vec, pxm[i]', colormap=colormap, colorrange=clims)
 
-# min_comp[1][2,2]
-
-# using Plots
-# heatmap(min_comp[2], c=:viridis, xlabel="Temperature", ylabel="Pressure", xticks=(1:length(temperature_vec), temperature_vec), yticks=(1:length(pressure_vec), pressure_vec), clims=(0.5, 2.5))
+         Colorbar(fig[i, 3], colormap=colormap, colorrange=clims)
+    end
+    save(file_path, fig)
+end

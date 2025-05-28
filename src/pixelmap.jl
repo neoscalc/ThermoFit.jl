@@ -175,6 +175,8 @@ function pixmap_misfit_Ti_in_Bt_temperatures(file_path                ::String;
     Colorbar(fig[2, 4], colormap=colormap_misfitmap, colorrange=clims_misfit)
 
     save(file_path, fig)
+
+    return fig
 end
 
 
@@ -244,4 +246,6 @@ function pixmap_phase_comp_og_v_mod(file_path                ::String;
          Colorbar(fig[i, 3], colormap=colormap, colorrange=clims)
     end
     save(file_path, fig)
+
+    return fig
 end

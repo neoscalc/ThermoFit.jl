@@ -4,8 +4,8 @@ function plot_convergence(filepath          ::String,
                           convergence_log   ::String,
                           loss_f            ::String,
                           metric_f          ::String;
-                          START_AT_EPOCH = 5,
-                          AVERAGE_N = 5)
+                          START_AT_EPOCH    ::Int = 5,
+                          AVERAGE_N         ::Int = 5)
 
     # Function to compute the moving average
     moving_average(vs,n) = [mean(@view vs[i:(i+n-1)]) for i in 1:(length(vs)-(n-1))]
@@ -58,6 +58,8 @@ function plot_convergence(filepath          ::String,
     ax2.ylabel = "Metric value"
 
     save(filepath, fig)
+
+    return fig
 end
 
 
@@ -117,4 +119,6 @@ function x_optim_v_resiudal(filepath          ::String,
     end
 
     save(filepath, fig)
+
+    return fig
 end

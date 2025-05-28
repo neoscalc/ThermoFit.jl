@@ -19,6 +19,11 @@ function plot_convergence(filepath          ::String,
         @error "Invalid convergence log file or directory: $convergence_log"
     end
 
+    # When multiple logs (random search) find the curve with minimal loss to highlight it
+    if data isa Vector{DataFrame}
+        min_loss_idx = argmin([minimum(d[:, 2]) for d in data])
+    end
+
     fig = Figure(size=(500, 600))
     ax1 = Axis(fig[1, 1])
     ax2 = Axis(fig[2, 1])
@@ -28,9 +33,13 @@ function plot_convergence(filepath          ::String,
         lines!(ax2, moving_average(data[START_AT_EPOCH:end, 3], AVERAGE_N), color=:red)
     elseif data isa Vector{DataFrame}
         for df in data
-            lines!(ax1, moving_average(df[START_AT_EPOCH:end, 2], AVERAGE_N), color=:blue, alpha=0.3)
-            lines!(ax2, moving_average(df[START_AT_EPOCH:end, 3], AVERAGE_N), color=:red, alpha=0.3)
+            lines!(ax1, moving_average(df[START_AT_EPOCH:end, 2], AVERAGE_N), color=:blue, alpha=0.2)
+            lines!(ax2, moving_average(df[START_AT_EPOCH:end, 3], AVERAGE_N), color=:red, alpha=0.2)
         end
+
+        # Highlight the curve with minimal loss
+        lines!(ax1, moving_average(data[min_loss_idx][START_AT_EPOCH:end, 2], AVERAGE_N), color=:blue, linewidth=2)
+        lines!(ax2, moving_average(data[min_loss_idx][START_AT_EPOCH:end, 3], AVERAGE_N), color=:red, linewidth=2)
     end
 
     ax1.title = "Loss $AVERAGE_N-epoch moving average of $loss_f"

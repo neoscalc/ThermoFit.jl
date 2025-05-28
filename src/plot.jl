@@ -102,7 +102,7 @@ function x_optim_v_resiudal(filepath          ::String,
         ax1.ylabel = "Residual"
 
         ax2 = Axis(fig[i, 2])
-        arrow_vec = hcat(x_starting_arr[:, 1], min_resiudal_arr) - hcat(x_optim_arr[:, 1], min_resiudal_arr)
+        arrow_vec = hcat(x_optim_arr[:, i], min_resiudal_arr) - hcat(x_starting_arr[:, i], min_resiudal_arr)
         arrows!(ax2, x_starting_arr[:, i], min_resiudal_arr, arrow_vec[:, 1], arrow_vec[:, 2], color=colors[i])
         ylims!(ax2, y_lower_lim, y_upper_lim)
         ax2.xlabel = "$(x_labels[i]) starting > optimised"

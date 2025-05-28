@@ -20,8 +20,10 @@ function plot_convergence(filepath          ::String,
     end
 
     # When multiple logs (random search) find the curve with minimal loss to highlight it
+    # Highlight the top 5 curves with minimal loss to check if they are similar
     if data isa Vector{DataFrame}
         min_loss_idx = argmin([minimum(d[:, 2]) for d in data])
+        min5_loss_idx = partialsortperm([minimum(d[:, 2]) for d in data], 1:5)
     end
 
     fig = Figure(size=(500, 600))
@@ -33,11 +35,16 @@ function plot_convergence(filepath          ::String,
         lines!(ax2, moving_average(data[START_AT_EPOCH:end, 3], AVERAGE_N), color=:red)
     elseif data isa Vector{DataFrame}
         for df in data
-            lines!(ax1, moving_average(df[START_AT_EPOCH:end, 2], AVERAGE_N), color=:blue, alpha=0.2)
-            lines!(ax2, moving_average(df[START_AT_EPOCH:end, 3], AVERAGE_N), color=:red, alpha=0.2)
+            lines!(ax1, moving_average(df[START_AT_EPOCH:end, 2], AVERAGE_N), color=:darkgray, alpha=0.4)
+            lines!(ax2, moving_average(df[START_AT_EPOCH:end, 3], AVERAGE_N), color=:darkgray, alpha=0.4)
         end
 
-        # Highlight the curve with minimal loss
+        # Highlight the top 5 curves with minimal losses
+        for df in data[min5_loss_idx]
+            lines!(ax1, moving_average(df[START_AT_EPOCH:end, 2], AVERAGE_N), color=:blue, alpha=0.4)
+            lines!(ax2, moving_average(df[START_AT_EPOCH:end, 3], AVERAGE_N), color=:red, alpha=0.4)
+        end
+        # Highlight the 1 curve with minimal loss
         lines!(ax1, moving_average(data[min_loss_idx][START_AT_EPOCH:end, 2], AVERAGE_N), color=:blue, linewidth=2)
         lines!(ax2, moving_average(data[min_loss_idx][START_AT_EPOCH:end, 3], AVERAGE_N), color=:red, linewidth=2)
     end

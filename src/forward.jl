@@ -87,7 +87,7 @@ function forward_call(phase, database, constraint, gv, z_b, DB, splx_data; w_g =
         unsafe_copyto!(ss_struct[ss_idx].gbase, pointer(ss_gbase_mod), ss_struct[ss_idx].n_em)
     end
 
-    out = pwm_run(gv, z_b, DB, splx_data)
+    out = pwm_run(gv, z_b, DB, splx_data, name_solvus=true)
     return out
 end
 

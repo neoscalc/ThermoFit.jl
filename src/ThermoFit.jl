@@ -24,6 +24,9 @@ include("objective_f.jl")
 include("plot.jl")
 include("pixelmap.jl")
 
+include("thermocheck/ThermoCheck.jl")
+using .ThermoCheck
+
 export Constraint, read_constraints_from_yml, gen_constraints_for_functional_inv, read_FPWMP_bulks
 export forward_call, calculate_w_g
 export JOB, print_job, variable_optimised, inversion

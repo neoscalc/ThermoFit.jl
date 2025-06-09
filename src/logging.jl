@@ -59,6 +59,10 @@ function print_job(job  ::JOB;
 end
 
 
+"""
+    print_constraints(nb_constraints, kwargs...)
+Prints the constraints for the inversion.
+"""
 function print_constraints(nb_constraints   ::Number;
                            constraints_yaml :: Union{Nothing, String},
                            constraints_gen  ::Bool= false,
@@ -87,6 +91,10 @@ function print_constraints(nb_constraints   ::Number;
 end
 
 
+"""
+    print_results(optim_result, job, loss_f, metric_f, io)
+Prints the inversion results.
+"""
 function print_results(optim_result     ::Optim.MultivariateOptimizationResults,
                        job              ::JOB,
                        loss_f           ::Function,
@@ -145,4 +153,35 @@ function print_results(optim_result     ::Optim.MultivariateOptimizationResults,
         println(io, "    ", opt_params_names[i], " = ", opt_params[i])
     end
     println(io, "-----------------------------------------------------")
+end
+
+
+"""
+    find_optimal_solution(convergence_log)
+Load the convergence log, form a log-file or a directory of log-files, and find the optimal solution
+by searching for the minimum loss value.
+Returns the optimal parameters, minimum loss, and metric at the minimal loss.
+"""
+function find_optimal_solution(convergence_log::String)
+    if endswith(convergence_log, ".log")
+        data = CSV.read(convergence_log, DataFrame, header=false, delim=';')
+
+    elseif isdir(convergence_log)
+        log_files = filter(f -> endswith(f, ".log"), readdir(convergence_log))
+        data = [CSV.read(joinpath(convergence_log, f), DataFrame, header=false, delim=';') for f in log_files]
+
+        # When multiple logs (random search) find the curve with minimal loss first
+        min_loss_curve_idx = argmin([minimum(d[:, 2]) for d in data])
+        data = data[min_loss_curve_idx]
+    else
+        @error "Invalid convergence log file or directory: $convergence_log"
+
+    end
+
+    minimum_loss_idx = argmin(data[:, 2])
+    minimum_loss = data[minimum_loss_idx, 2]
+    minimum_metric = data[minimum_loss_idx, 3]
+    optimal_x = eval(Meta.parse(data[minimum_loss_idx, 1]))
+
+    return optimal_x, minimum_loss, minimum_metric
 end

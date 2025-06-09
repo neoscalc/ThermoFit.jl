@@ -1,6 +1,7 @@
 module ThermoCheck
 
-import ..ThermoFit
+using ..ThermoFit
+using CairoMakie
 
 include("qfactor.jl")
 

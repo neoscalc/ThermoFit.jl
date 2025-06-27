@@ -148,6 +148,11 @@ function probe_test_points(test_points ::Vector{<:ThermoFit.Constraint},
 end
 
 
+"""
+Plot the Q_asm (Quality factor for the mineral assemblage) for a set of P-T points and bulk rock compositions.
+The function creates a Figure with subplots for each bulk rock composition, showing the Q_asm values
+in P-T space, along with the differences in mineral assemblages compared to a reference assemblage.
+"""
 function plot_qasm(database       ::AbstractString,
                    reference      ::String,
                    phase          ::AbstractString;
@@ -207,6 +212,16 @@ function plot_qasm(database       ::AbstractString,
 end
 
 
+"""
+Campare the mineral assemblages of two sets (Vectors) of assemblages and return a Vector of strings describing the differences.
+The strings are formatted as:
+- "+phase" for phases present in `asm_vec` but not in `asm_ref`
+- "-phase" for phases present in `asm_ref` but not in `asm_vec`
+- "no diff" if there are no differences.
+
+This function is used within the `plot_qasm` function to display the differences in mineral assemblages
+between the modelled and reference assemblages.
+"""
 function asm_diff_vector(asm_vec,
                          asm_ref)
     

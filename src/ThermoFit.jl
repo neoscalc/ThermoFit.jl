@@ -22,7 +22,6 @@ include("logging.jl")
 include("loss.jl")
 include("objective_f.jl")
 include("plot.jl")
-include("pixelmap.jl")
 
 include("thermocheck/ThermoCheck.jl")
 using .ThermoCheck

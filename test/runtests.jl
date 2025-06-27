@@ -126,7 +126,7 @@ end
     bulk = [64.13, 0.91, 19.63, 6.85, 0.08, 2.41, 0.65, 1.38, 3.95, 40.0]
     bulk_oxides = ["SiO2", "TiO2", "Al2O3", "FeO", "MnO", "MgO", "CaO", "Na2O", "K2O", "H2O"]
     sys_in = "wt%"
-    assemblage = ["st", "bi", "mu", "fsp", "ilm", "q", "H2O"]
+    assemblage = ["st", "bi", "mu", "pl", "ilm", "q", "H2O"]
     mineral_composition_apfu = Dict("bi" => [2.720008886150718, 1.559982227698564, 0.0, 0.89014494411893, 1.732872689303359, 1.0, 0.0, 0.08652624797247646, 12.0, 0.01046500475595296, 1.8269475040550471])
     mineral_elements = ["Si", "Al", "Ca", "Mg", "Fe", "K", "Na", "Ti", "O", "Mn", "H"]
 
@@ -160,17 +160,17 @@ end
 
     # test the forward_call() function with altered w_g
     out_w_mod = forward_call(phase, database, constraint, gv, z_b, DB, splx_data; w_g = w_mod)
-    @test sort(out_w_mod.ph) == sort(["mu", "bi", "st", "fsp", "g", "ilm", "q", "H2O"])
+    @test sort(out_w_mod.ph) == sort(["mu", "bi", "st", "pl", "g", "ilm", "q", "H2O"])
     @test out_w_mod.SS_vec[findfirst(out_w_mod.ph .== "bi")].Comp_apfu ≈ [2.703201966718807, 1.5935960665623852, 0.0, 0.8769929425165847, 1.7275929039130509, 1.0000000000000002, 0.0, 0.08873358434595208, 12.0, 0.00988253594321993, 1.822532831308096] atol=1e-2
 
     # test the forward_call() function with altered g0_corr
     out_g0_mod = forward_call(phase, database, constraint, gv, z_b, DB, splx_data; g0_corr_vec = g0_corr_mod, g0_corr_em = g0_corr_endmembers)
-    @test sort(out_g0_mod.ph) == sort(["fsp", "bi", "mu", "st", "ilm", "g", "q", "H2O"])
+    @test sort(out_g0_mod.ph) == sort(["pl", "bi", "mu", "st", "ilm", "g", "q", "H2O"])
     @test out_g0_mod.SS_vec[findfirst(out_g0_mod.ph .== "bi")].Comp_apfu ≈ [2.711326941147552, 1.5773461177048962, 0.0, 0.8795051695973085, 1.7337723613120772, 1.0, 0.0, 0.08775150164407976, 12.0, 0.010297908594086575, 1.8244969967118405] atol=1e-2
 
     #test the forward_call() function with altered w_g and g0_corr
     out_w_g0_mod = forward_call(phase, database, constraint, gv, z_b, DB, splx_data; w_g = w_mod, g0_corr_vec = g0_corr_mod, g0_corr_em = g0_corr_endmembers)
-    @test sort(out_w_g0_mod.ph) == sort(["fsp", "mu", "st", "bi", "g", "ilm", "q", "H2O"])
+    @test sort(out_w_g0_mod.ph) == sort(["pl", "mu", "st", "bi", "g", "ilm", "q", "H2O"])
     @test out_w_g0_mod.SS_vec[findfirst(out_w_g0_mod.ph .== "bi")].Comp_apfu ≈ [2.6981048656876174, 1.6037902686247656, 0.0, 0.8692846574817923, 1.7295717750076536, 1.0, 0.0, 0.0894953787332389, 12.0, 0.00975305446493273, 1.8210092425335223] atol=1e-2
 
     # test the calculate_w_g() function
@@ -397,35 +397,5 @@ end
 
 end
 
-@testset "pixelmap.jl" begin
-    temperature_vec = Vector(550.:10:580)
-    pressure_vec = Vector(4.:0.5:5.5)
-    comp_variables_export = ["Si", "Fe", "Mg"]
-    database = "mp"
-    w_g = nothing
-    G_0 = [0., 0., 0., 0., 0., 0., 0.]
-    phase = "bi"
-    # bulk from White et al. 2014b (Fig. 8)
-    bulk = [64.578, 13.651, 1.586, 5.529, 8.025, 2.943, 2.000, 0.907, 0.175, 40.]
-    bulk_oxides = ["SiO2", "Al2O3", "CaO", "MgO", "FeO", "K2O", "Na2O", "TiO2", "MnO", "H2O"]
-    sys_in = "mol"
-
-    min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
-
-    @test min_comp[1][2,2] ≈ 2.7340356340442105  atol=1e-3
-
-    w_g = repeat([0.], 21)
-
-    min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
-
-    @test min_comp[1][2,2] ≈ 2.6369670586738323 atol=1e-3
-
-    w_g = repeat([0.], 21)
-    G_0 = [2., 0., 0., 0., 0., 0., 0.]
-    min_comp, p, t = pixelmap(temperature_vec, pressure_vec, bulk, bulk_oxides, database, sys_in, comp_variables_export, phase, w_g=w_g, G_0=G_0)
-
-    @test min_comp[1][2,2] ≈ 2.6265499111832478 atol=1e-3
-
-end
-
+include("test_ThermoCheck.jl")
 end

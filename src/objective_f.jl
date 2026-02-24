@@ -44,7 +44,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
 
         constraint, gv, z_b, DB, splx_data, w_g, g0_corr, g0_corr_endmembers = prepare_forward_call(variables_optim_local,
                                                                                                     MAGEMin_db,
-                                                                                                    job, 
+                                                                                                    job,
                                                                                                     constraint)
 
         # call the forward module
@@ -81,7 +81,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
             # calculate loss: Default is loss_Qfactor: (100 - Q_cmp)
             loss_vec[i] = loss_f(composition_predicted, constraint_composition)
             # calculate Q_cmp as a metric beside the loss function
-            metric_vec[i] = metric_f(constraint_composition, composition_predicted)            
+            metric_vec[i] = metric_f(constraint_composition, composition_predicted)
         end
 
     end
@@ -96,7 +96,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     metric = sum(metric_vec) / nb_constraints
 
     if !isnothing(progress_log_io)
-        println(progress_log_io, "$variables_optim_local; $(residual); $(qcmp); $(frac_phase_present)")
+        println(progress_log_io, "$variables_optim_local; $(residual); $(metric); $(frac_phase_present)")
     end
 
     if job.verbose
@@ -155,7 +155,7 @@ function objective_function_func_relation(x0, job, constraints, nb_constraints, 
 
         constraint, gv, z_b, DB, splx_data, w_g, g0_corr, g0_corr_endmembers = prepare_forward_call(variables_optim_local,
                                                                                                     MAGEMin_db,
-                                                                                                    job, 
+                                                                                                    job,
                                                                                                     constraint)
 
         # call the forward module
@@ -181,7 +181,7 @@ function objective_function_func_relation(x0, job, constraints, nb_constraints, 
             composition_predicted = out.SS_vec[findfirst(x->x==job.phase_to_be_optimised, out.ph)].Comp_apfu
 
             loss_vec[i] = loss_f(composition_predicted, constraint.temperature_C, out.ph, out.elements)
-            metric_vec[i] = metric_f(composition_predicted, constraint.temperature_C, out.elements)          
+            metric_vec[i] = metric_f(composition_predicted, constraint.temperature_C, out.elements)
         end
 
     end

@@ -97,6 +97,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
 
     if !isnothing(progress_log_io)
         println(progress_log_io, "$variables_optim_local; $(residual); $(metric); $(frac_phase_present)")
+        flush(progress_log_io)
     end
 
     if job.verbose

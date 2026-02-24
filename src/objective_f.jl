@@ -90,7 +90,7 @@ function objective_function(x0, job, constraints, nb_constraints, MAGEMin_db; lo
     mean_loss = sum(loss_vec) / nb_constraints
     frac_phase_present = (sum(phase_pred_stable) / nb_constraints) * 100
     # calculate the mean between the two
-    residual = .5 * (mean_loss + frac_phase_present)
+    residual = .5 * (mean_loss + (1 - frac_phase_present))
 
     # Calculate the mean Q_cmp metric
     metric = sum(metric_vec) / nb_constraints
